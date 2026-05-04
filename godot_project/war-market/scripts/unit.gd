@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal unit_clicked(unit)
+
 @export var unit_name: String = "Unit"
 @export var team_id: int = 0
 
@@ -15,6 +17,7 @@ var current_hp: float
 var target: CharacterBody3D = null
 var attack_timer: float = 0.0
 var battle_active: bool = false
+var is_selected: bool = false
 
 @onready var body_mesh: MeshInstance3D = $MeshInstance3D
 @onready var health_bar: Node3D = $HealthBar
@@ -23,6 +26,8 @@ var battle_active: bool = false
 
 func _ready() -> void:
 	current_hp = max_hp
+	input_ray_pickable = true
+	input_event.connect(_on_input_event)
 	add_to_group("units")
 	apply_team_color()
 	setup_health_bar()
@@ -59,6 +64,18 @@ func _physics_process(delta: float) -> void:
 		if attack_timer <= 0.0:
 			attack(target)
 			attack_timer = attack_cooldown
+
+func _on_input_event(
+	_camera: Camera3D,
+	event: InputEvent,
+	_position: Vector3,
+	_normal: Vector3,
+	_shape_idx: int
+) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			print("UNIT CLICKED: ", unit_name)
+			unit_clicked.emit(self)
 
 func find_nearest_enemy() -> CharacterBody3D:
 	var units := get_tree().get_nodes_in_group("units")
@@ -102,16 +119,33 @@ func die() -> void:
 
 func start_battle() -> void:
 	battle_active = true
+	set_selected(false)
 	print(unit_name, " starts battle")
 
 func stop_battle() -> void:
 	battle_active = false
 	velocity = Vector3.ZERO
 
+func set_selected(value: bool) -> void:
+	is_selected = value
+	update_selection_visual()
+
 func apply_team_color() -> void:
 	var material := StandardMaterial3D.new()
 	
 	if team_id == 0:
+		material.albedo_color = Color(0.2, 0.45, 1.0)
+	else:
+		material.albedo_color = Color(1.0, 0.25, 0.2)
+	
+	body_mesh.material_override = material
+
+func update_selection_visual() -> void:
+	var material := StandardMaterial3D.new()
+	
+	if is_selected:
+		material.albedo_color = Color(0.2, 1.0, 0.4)
+	elif team_id == 0:
 		material.albedo_color = Color(0.2, 0.45, 1.0)
 	else:
 		material.albedo_color = Color(1.0, 0.25, 0.2)
@@ -137,6 +171,4 @@ func update_health_bar() -> void:
 	hp_ratio = clamp(hp_ratio, 0.0, 1.0)
 	
 	hp_fill.scale.x = hp_ratio
-	
-	# Przesuwamy pasek w lewo, żeby znikał od prawej strony.
 	hp_fill.position.x = -0.5 * (1.0 - hp_ratio)

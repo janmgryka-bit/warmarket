@@ -9,6 +9,7 @@ extends Node3D
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var battle_started: bool = false
 var round_ended: bool = false
+var selected_unit: CharacterBody3D = null
 
 func _ready() -> void:
 	print("GAME READY")
@@ -57,9 +58,33 @@ func spawn_unit(
 	unit.move_speed = move_speed
 	
 	units_container.add_child(unit)
+	unit.unit_clicked.connect(_on_unit_clicked)
 	place_unit_on_grid(unit, grid_pos)
 	
 	return unit
+
+func _on_unit_clicked(unit: CharacterBody3D) -> void:
+	if battle_started:
+		print("Cannot select unit during battle")
+		return
+	
+	if round_ended:
+		print("Cannot select unit after round ended")
+		return
+	
+	if unit.team_id != 0:
+		print("Cannot select enemy unit")
+		return
+	
+	select_unit(unit)
+
+func select_unit(unit: CharacterBody3D) -> void:
+	if selected_unit != null and is_instance_valid(selected_unit):
+		selected_unit.set_selected(false)
+	
+	selected_unit = unit
+	selected_unit.set_selected(true)
+	print("SELECTED UNIT: ", selected_unit.unit_name)
 
 func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:
 	unit.grid_position = grid_pos
@@ -98,13 +123,12 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		print("Tile occupied: ", grid_pos)
 		return
 	
-	var player_unit := get_first_player_unit()
-	if player_unit == null:
-		print("No player unit found")
+	if selected_unit == null or not is_instance_valid(selected_unit):
+		print("No selected unit")
 		return
 	
-	place_unit_on_grid(player_unit, grid_pos)
-	print("Moved player unit to: ", grid_pos)
+	place_unit_on_grid(selected_unit, grid_pos)
+	print("Moved selected unit to: ", grid_pos)
 
 func get_first_player_unit() -> CharacterBody3D:
 	var units := get_tree().get_nodes_in_group("units")
@@ -131,6 +155,10 @@ func start_battle() -> void:
 	round_ended = false
 	round_result_label.text = ""
 	restart_button.visible = false
+	
+	if selected_unit != null and is_instance_valid(selected_unit):
+		selected_unit.set_selected(false)
+	selected_unit = null
 	
 	print("BATTLE STARTED")
 	
@@ -186,6 +214,7 @@ func restart_round() -> void:
 	round_ended = false
 	round_result_label.text = ""
 	restart_button.visible = false
+	selected_unit = null
 	
 	spawn_test_units()
 
