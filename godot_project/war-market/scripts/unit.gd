@@ -4,6 +4,7 @@ signal unit_clicked(unit)
 
 @export var unit_name: String = "Unit"
 @export var team_id: int = 0
+@export var role: String = "Fighter"
 
 var grid_position: Vector2i = Vector2i(-1, -1)
 
@@ -175,7 +176,12 @@ func update_health_bar() -> void:
 	hp_fill.position.x = -0.5 * (1.0 - hp_ratio)
 
 func apply_role_shape() -> void:
-	if attack_range > 2.0:
-		body_mesh.scale = Vector3(0.75, 0.85, 0.75)
-	else:
-		body_mesh.scale = Vector3(1.0, 1.0, 1.0)
+	match role:
+		"Tank":
+			body_mesh.scale = Vector3(1.15, 1.1, 1.15)
+		"Ranged":
+			body_mesh.scale = Vector3(0.75, 0.85, 0.75)
+		"Fighter":
+			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
+		_:
+			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
