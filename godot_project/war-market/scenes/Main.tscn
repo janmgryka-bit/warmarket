@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://ddvxr38i3ubxx"]
+
+[ext_resource type="Script" uid="uid://b2tmmve3ffu00" path="res://scripts/board.gd" id="1_elqb8"]
+[ext_resource type="Script" uid="uid://i2tbls6ryjgp" path="res://scripts/game.gd" id="1_rvslj"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_qnwvq"]
+size = Vector3(12, 0.2, 12)
+
+[node name="Main" type="Node3D" unique_id=1694071260]
+script = ExtResource("1_rvslj")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=167191129]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=2125345866]
+transform = Transform3D(0.81915206, -0.43938506, 0.36868784, 0, 0.64278764, 0.76604444, -0.57357645, -0.62750685, 0.5265408, 7, 10, 10)
+current = true
+
+[node name="ArenaFloor" type="MeshInstance3D" parent="." unique_id=440429076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+visible = false
+mesh = SubResource("BoxMesh_qnwvq")
+
+[node name="Board" type="Node3D" parent="." unique_id=1230537854]
+script = ExtResource("1_elqb8")
+
+[node name="Units" type="Node3D" parent="." unique_id=842471417]
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=390280858]
+
+[node name="StartBattleButton" type="Button" parent="UI" unique_id=1115291842]
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 220.0
+offset_bottom = 80.0
+text = "Start Battle"
+
+[connection signal="pressed" from="UI/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
