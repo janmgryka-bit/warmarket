@@ -5,12 +5,18 @@ extends Node3D
 @onready var start_button: Button = $UI/StartBattleButton
 @onready var restart_button: Button = $UI/RestartRoundButton
 @onready var round_result_label: Label = $UI/RoundResultLabel
+@onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
 
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var unit_database = preload("res://scripts/unit_database.gd")
 var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
+var shop_unit_ids: Array[String] = [
+	"roman_legionary",
+	"roman_archer",
+	"viking_berserker"
+]
 
 func _ready() -> void:
 	print("GAME READY")
@@ -31,6 +37,7 @@ func _ready() -> void:
 	restart_button.visible = false
 	
 	spawn_test_units()
+	populate_shop()
 
 func _process(_delta: float) -> void:
 	if battle_started and not round_ended:
@@ -224,3 +231,35 @@ func restart_round() -> void:
 func clear_units() -> void:
 	for child in units_container.get_children():
 		child.queue_free()
+
+func populate_shop() -> void:
+	clear_shop()
+	
+	for unit_id in shop_unit_ids:
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		
+		if data.is_empty():
+			continue
+		
+		var card := Button.new()
+		card.custom_minimum_size = Vector2(220, 90)
+		card.text = "%s\n%s\n%d gold" % [
+			data["name"],
+			data["role"],
+			data["base_price"]
+		]
+		
+		card.pressed.connect(_on_shop_card_pressed.bind(unit_id))
+		shop_items.add_child(card)
+
+func clear_shop() -> void:
+	for child in shop_items.get_children():
+		child.queue_free()
+
+func _on_shop_card_pressed(unit_id: String) -> void:
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	
+	if data.is_empty():
+		return
+	
+	print("SHOP CLICKED: ", data["name"], " / price: ", data["base_price"])
