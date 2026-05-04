@@ -3,6 +3,8 @@ extends CharacterBody3D
 @export var unit_name: String = "Unit"
 @export var team_id: int = 0
 
+var grid_position: Vector2i = Vector2i(-1, -1)
+
 @export var max_hp: float = 100.0
 @export var damage: float = 10.0
 @export var attack_range: float = 1.4

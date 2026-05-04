@@ -35,27 +35,51 @@ func _process(_delta: float) -> void:
 		check_round_end()
 
 func spawn_test_units() -> void:
-	var roman = unit_scene.instantiate()
-	roman.name = "RomanLegionary"
-	roman.unit_name = "Legionista"
-	roman.team_id = 0
-	roman.max_hp = 140
-	roman.damage = 12
-	roman.attack_cooldown = 1.0
-	roman.move_speed = 2.0
-	units_container.add_child(roman)
-	roman.global_position = board.get_spawn_position(Vector2i(2, 6))
+	spawn_unit("Legionista", 0, 140, 12, 1.0, 2.0, Vector2i(2, 6))
+	spawn_unit("Berserker", 1, 110, 18, 1.1, 2.3, Vector2i(5, 1))
+
+func spawn_unit(
+	unit_name: String,
+	team_id: int,
+	max_hp: float,
+	damage: float,
+	attack_cooldown: float,
+	move_speed: float,
+	grid_pos: Vector2i
+) -> CharacterBody3D:
+	var unit = unit_scene.instantiate()
+	unit.name = unit_name
+	unit.unit_name = unit_name
+	unit.team_id = team_id
+	unit.max_hp = max_hp
+	unit.damage = damage
+	unit.attack_cooldown = attack_cooldown
+	unit.move_speed = move_speed
 	
-	var viking = unit_scene.instantiate()
-	viking.name = "VikingBerserker"
-	viking.unit_name = "Berserker"
-	viking.team_id = 1
-	viking.max_hp = 110
-	viking.damage = 18
-	viking.attack_cooldown = 1.1
-	viking.move_speed = 2.3
-	units_container.add_child(viking)
-	viking.global_position = board.get_spawn_position(Vector2i(5, 1))
+	units_container.add_child(unit)
+	place_unit_on_grid(unit, grid_pos)
+	
+	return unit
+
+func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:
+	unit.grid_position = grid_pos
+	unit.global_position = board.get_spawn_position(grid_pos)
+	print(unit.unit_name, " placed at: ", grid_pos)
+
+func is_tile_occupied(grid_pos: Vector2i) -> bool:
+	var units := get_tree().get_nodes_in_group("units")
+	
+	for unit in units:
+		if not is_instance_valid(unit):
+			continue
+		
+		if unit.current_hp <= 0:
+			continue
+		
+		if unit.grid_position == grid_pos:
+			return true
+	
+	return false
 
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	if battle_started:
@@ -70,12 +94,16 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		print("Enemy half - cannot place there")
 		return
 	
+	if is_tile_occupied(grid_pos):
+		print("Tile occupied: ", grid_pos)
+		return
+	
 	var player_unit := get_first_player_unit()
 	if player_unit == null:
 		print("No player unit found")
 		return
 	
-	player_unit.global_position = board.get_spawn_position(grid_pos)
+	place_unit_on_grid(player_unit, grid_pos)
 	print("Moved player unit to: ", grid_pos)
 
 func get_first_player_unit() -> CharacterBody3D:
