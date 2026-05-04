@@ -13,6 +13,20 @@ const UNITS := {
 		"move_speed": 2.0,
 		"attack_range": 1.4
 	},
+	
+		"roman_archer": {
+		"name": "Rzymski Łucznik",
+		"faction": "Romans",
+		"role": "Ranged",
+		"tier": 1,
+		"base_price": 2,
+		"max_hp": 80,
+		"damage": 9,
+		"attack_cooldown": 1.2,
+		"move_speed": 2.0,
+		"attack_range": 4.0
+	},
+	
 	"viking_berserker": {
 		"name": "Berserker",
 		"faction": "Vikings",

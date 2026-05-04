@@ -38,7 +38,7 @@ func _process(_delta: float) -> void:
 
 func spawn_test_units() -> void:
 	spawn_unit_by_id("roman_legionary", 0, Vector2i(2, 6))
-	spawn_unit_by_id("roman_legionary", 0, Vector2i(4, 6))
+	spawn_unit_by_id("roman_archer", 0, Vector2i(4, 7))
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 	
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:

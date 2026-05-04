@@ -30,6 +30,7 @@ func _ready() -> void:
 	input_event.connect(_on_input_event)
 	add_to_group("units")
 	apply_team_color()
+	apply_role_shape()
 	setup_health_bar()
 	update_health_bar()
 	print(unit_name, " ready. HP: ", current_hp)
@@ -172,3 +173,9 @@ func update_health_bar() -> void:
 	
 	hp_fill.scale.x = hp_ratio
 	hp_fill.position.x = -0.5 * (1.0 - hp_ratio)
+
+func apply_role_shape() -> void:
+	if attack_range > 2.0:
+		body_mesh.scale = Vector3(0.75, 0.85, 0.75)
+	else:
+		body_mesh.scale = Vector3(1.0, 1.0, 1.0)
