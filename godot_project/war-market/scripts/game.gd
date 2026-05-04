@@ -7,6 +7,7 @@ extends Node3D
 @onready var round_result_label: Label = $UI/RoundResultLabel
 
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
+var unit_database = preload("res://scripts/unit_database.gd")
 var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
@@ -36,30 +37,30 @@ func _process(_delta: float) -> void:
 		check_round_end()
 
 func spawn_test_units() -> void:
-	spawn_unit("Legionista", 0, 140, 12, 1.0, 2.0, Vector2i(2, 6))
-	spawn_unit("Berserker", 1, 110, 18, 1.1, 2.3, Vector2i(5, 1))
-
-func spawn_unit(
-	unit_name: String,
-	team_id: int,
-	max_hp: float,
-	damage: float,
-	attack_cooldown: float,
-	move_speed: float,
-	grid_pos: Vector2i
-) -> CharacterBody3D:
+	spawn_unit_by_id("roman_legionary", 0, Vector2i(2, 6))
+	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+	
+func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	
+	if data.is_empty():
+		return null
+	
 	var unit = unit_scene.instantiate()
-	unit.name = unit_name
-	unit.unit_name = unit_name
+	unit.name = unit_id
+	unit.unit_name = data["name"]
 	unit.team_id = team_id
-	unit.max_hp = max_hp
-	unit.damage = damage
-	unit.attack_cooldown = attack_cooldown
-	unit.move_speed = move_speed
+	unit.max_hp = data["max_hp"]
+	unit.damage = data["damage"]
+	unit.attack_cooldown = data["attack_cooldown"]
+	unit.move_speed = data["move_speed"]
+	unit.attack_range = data["attack_range"]
 	
 	units_container.add_child(unit)
 	unit.unit_clicked.connect(_on_unit_clicked)
 	place_unit_on_grid(unit, grid_pos)
+	
+	print("Spawned unit: ", data["name"], " / faction: ", data["faction"])
 	
 	return unit
 
