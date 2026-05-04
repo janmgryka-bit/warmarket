@@ -14,7 +14,6 @@ func _ready() -> void:
 		print("ERROR: StartBattleButton not found")
 	else:
 		print("StartBattleButton found")
-		start_button.pressed.connect(_on_start_battle_button_pressed)
 	
 	spawn_test_units()
 
