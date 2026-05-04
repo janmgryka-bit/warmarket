@@ -12,6 +12,7 @@ var unit_database = preload("res://scripts/unit_database.gd")
 var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
+var selected_shop_unit_id: String = ""
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
@@ -133,10 +134,16 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		print("Tile occupied: ", grid_pos)
 		return
 	
+	if selected_shop_unit_id != "":
+		spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
+		print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos)
+		selected_shop_unit_id = ""
+		return
+
 	if selected_unit == null or not is_instance_valid(selected_unit):
 		print("No selected unit")
 		return
-	
+
 	place_unit_on_grid(selected_unit, grid_pos)
 	print("Moved selected unit to: ", grid_pos)
 
@@ -257,9 +264,23 @@ func clear_shop() -> void:
 		child.queue_free()
 
 func _on_shop_card_pressed(unit_id: String) -> void:
+	if battle_started:
+		print("Cannot buy during battle")
+		return
+	
+	if round_ended:
+		print("Cannot buy after round ended")
+		return
+	
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	
 	if data.is_empty():
 		return
 	
-	print("SHOP CLICKED: ", data["name"], " / price: ", data["base_price"])
+	selected_shop_unit_id = unit_id
+	
+	if selected_unit != null and is_instance_valid(selected_unit):
+		selected_unit.set_selected(false)
+	selected_unit = null
+	
+	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", data["base_price"])
