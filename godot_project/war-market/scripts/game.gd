@@ -23,6 +23,8 @@ func _ready() -> void:
 	else:
 		print("RestartRoundButton found")
 	
+	board.tile_clicked.connect(_on_board_tile_clicked)
+	
 	round_result_label.text = ""
 	restart_button.visible = false
 	
@@ -54,6 +56,36 @@ func spawn_test_units() -> void:
 	viking.move_speed = 2.3
 	units_container.add_child(viking)
 	viking.global_position = board.get_spawn_position(Vector2i(5, 6))
+
+func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
+	if battle_started:
+		print("Cannot move unit during battle")
+		return
+	
+	if round_ended:
+		print("Cannot move unit after round ended")
+		return
+	
+	if grid_pos.y > 3:
+		print("Enemy half - cannot place there")
+		return
+	
+	var player_unit := get_first_player_unit()
+	if player_unit == null:
+		print("No player unit found")
+		return
+	
+	player_unit.global_position = board.get_spawn_position(grid_pos)
+	print("Moved player unit to: ", grid_pos)
+
+func get_first_player_unit() -> CharacterBody3D:
+	var units := get_tree().get_nodes_in_group("units")
+	
+	for unit in units:
+		if unit.team_id == 0 and unit.current_hp > 0:
+			return unit
+	
+	return null
 
 func _on_start_battle_button_pressed() -> void:
 	print("BUTTON CLICKED")
