@@ -44,7 +44,7 @@ func spawn_test_units() -> void:
 	roman.attack_cooldown = 1.0
 	roman.move_speed = 2.0
 	units_container.add_child(roman)
-	roman.global_position = board.get_spawn_position(Vector2i(2, 1))
+	roman.global_position = board.get_spawn_position(Vector2i(2, 6))
 	
 	var viking = unit_scene.instantiate()
 	viking.name = "VikingBerserker"
@@ -55,7 +55,7 @@ func spawn_test_units() -> void:
 	viking.attack_cooldown = 1.1
 	viking.move_speed = 2.3
 	units_container.add_child(viking)
-	viking.global_position = board.get_spawn_position(Vector2i(5, 6))
+	viking.global_position = board.get_spawn_position(Vector2i(5, 1))
 
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	if battle_started:
@@ -66,7 +66,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		print("Cannot move unit after round ended")
 		return
 	
-	if grid_pos.y > 3:
+	if grid_pos.y < 4:
 		print("Enemy half - cannot place there")
 		return
 	
