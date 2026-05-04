@@ -6,6 +6,12 @@
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a2g4q"]
 
+[sub_resource type="BoxMesh" id="BoxMesh_a2g4q"]
+size = Vector3(1, 0.08, 0.08)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pyybm"]
+size = Vector3(1, 0.09, 0.09)
+
 [node name="Unit" type="CharacterBody3D" unique_id=1255001695]
 script = ExtResource("1_a2g4q")
 
@@ -14,3 +20,13 @@ mesh = SubResource("CapsuleMesh_ixigy")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=297628512]
 shape = SubResource("CapsuleShape3D_a2g4q")
+
+[node name="HealthBar" type="Node3D" parent="." unique_id=949630006]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+
+[node name="HpBack" type="MeshInstance3D" parent="HealthBar" unique_id=1713439863]
+mesh = SubResource("BoxMesh_a2g4q")
+
+[node name="HpFill" type="MeshInstance3D" parent="HealthBar" unique_id=1305624465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -0.01)
+mesh = SubResource("BoxMesh_pyybm")

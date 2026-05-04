@@ -14,9 +14,17 @@ var target: CharacterBody3D = null
 var attack_timer: float = 0.0
 var battle_active: bool = false
 
+@onready var body_mesh: MeshInstance3D = $MeshInstance3D
+@onready var health_bar: Node3D = $HealthBar
+@onready var hp_back: MeshInstance3D = $HealthBar/HpBack
+@onready var hp_fill: MeshInstance3D = $HealthBar/HpFill
+
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("units")
+	apply_team_color()
+	setup_health_bar()
+	update_health_bar()
 	print(unit_name, " ready. HP: ", current_hp)
 
 func _physics_process(delta: float) -> void:
@@ -79,6 +87,8 @@ func attack(enemy: CharacterBody3D) -> void:
 
 func take_damage(amount: float) -> void:
 	current_hp -= amount
+	current_hp = max(current_hp, 0.0)
+	update_health_bar()
 	print(unit_name, " HP: ", current_hp)
 	
 	if current_hp <= 0:
@@ -95,3 +105,36 @@ func start_battle() -> void:
 func stop_battle() -> void:
 	battle_active = false
 	velocity = Vector3.ZERO
+
+func apply_team_color() -> void:
+	var material := StandardMaterial3D.new()
+	
+	if team_id == 0:
+		material.albedo_color = Color(0.2, 0.45, 1.0)
+	else:
+		material.albedo_color = Color(1.0, 0.25, 0.2)
+	
+	body_mesh.material_override = material
+
+func setup_health_bar() -> void:
+	var back_material := StandardMaterial3D.new()
+	back_material.albedo_color = Color(0.05, 0.05, 0.05)
+	back_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hp_back.material_override = back_material
+	
+	var fill_material := StandardMaterial3D.new()
+	fill_material.albedo_color = Color(0.1, 1.0, 0.2)
+	fill_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hp_fill.material_override = fill_material
+
+func update_health_bar() -> void:
+	if hp_fill == null:
+		return
+	
+	var hp_ratio := current_hp / max_hp
+	hp_ratio = clamp(hp_ratio, 0.0, 1.0)
+	
+	hp_fill.scale.x = hp_ratio
+	
+	# Przesuwamy pasek w lewo, żeby znikał od prawej strony.
+	hp_fill.position.x = -0.5 * (1.0 - hp_ratio)

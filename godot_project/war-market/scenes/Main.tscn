@@ -35,4 +35,10 @@ offset_right = 220.0
 offset_bottom = 80.0
 text = "Start Battle"
 
+[node name="RoundResultLabel" type="Label" parent="UI" unique_id=1876565823]
+offset_left = 300.0
+offset_top = 30.0
+offset_right = 700.0
+offset_bottom = 110.0
+
 [connection signal="pressed" from="UI/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
