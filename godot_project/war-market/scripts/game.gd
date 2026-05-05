@@ -10,6 +10,7 @@ extends Node3D
 @onready var gold_label: Label = $UI/GoldLabel
 @onready var round_label: Label = $UI/RoundLabel
 @onready var reroll_button: Button = $UI/RerollButton
+@onready var sell_unit_button: Button = $UI/SellUnitButton
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -409,6 +410,55 @@ func _on_reroll_button_pressed() -> void:
 	roll_shop_offers()
 	populate_shop()
 	print("Rerolled shop for ", reroll_cost, " gold")
+
+func _on_sell_unit_button_pressed() -> void:
+	if battle_started:
+		print("Cannot sell unit during battle")
+		return
+	
+	if selected_unit == null or not is_instance_valid(selected_unit):
+		print("No unit selected to sell")
+		return
+	
+	if selected_unit.team_id != 0:
+		print("Cannot sell enemy unit")
+		return
+	
+	if not selected_unit.has_meta("roster_id"):
+		print("Selected unit has no roster_id")
+		return
+	
+	var roster_id = selected_unit.get_meta("roster_id")
+	var roster_entry = null
+	var roster_index = -1
+	
+	for i in range(player_roster.size()):
+		if player_roster[i]["roster_id"] == roster_id:
+			roster_entry = player_roster[i]
+			roster_index = i
+			break
+	
+	if roster_entry == null:
+		print("Roster entry not found for unit with roster_id ", roster_id)
+		return
+	
+	var unit_id = roster_entry["unit_id"]
+	var unit_data = unit_database.get_unit_data(unit_id)
+	
+	if unit_data.is_empty():
+		print("Unit data not found for unit_id ", unit_id)
+		return
+	
+	var refund = unit_data["base_price"]
+	
+	player_gold += refund
+	player_roster.remove_at(roster_index)
+	selected_unit.queue_free()
+	selected_unit = null
+	
+	update_gold_label()
+	populate_shop()
+	print("Sold ", unit_data["name"], " for ", refund, " gold")
 
 # UI
 func update_gold_label() -> void:
