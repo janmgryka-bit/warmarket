@@ -28,6 +28,8 @@ var shop_unit_ids: Array[String] = [
 	"roman_archer",
 	"viking_berserker"
 ]
+var player_roster: Array[Dictionary] = []
+var roster_id_counter: int = 0
 
 # Setup
 func _ready() -> void:
@@ -59,8 +61,24 @@ func _process(_delta: float) -> void:
 
 # Spawning
 func spawn_test_units() -> void:
-	spawn_unit_by_id("roman_legionary", 0, Vector2i(2, 6))
-	spawn_unit_by_id("roman_archer", 0, Vector2i(4, 7))
+	add_player_roster_unit("roman_legionary", Vector2i(2, 6))
+	add_player_roster_unit("roman_archer", Vector2i(4, 7))
+	spawn_player_roster()
+	spawn_enemy_test_units()
+
+func add_player_roster_unit(unit_id: String, grid_pos: Vector2i) -> void:
+	roster_id_counter += 1
+	player_roster.append({"roster_id": roster_id_counter, "unit_id": unit_id, "grid_pos": grid_pos})
+	print("Added to roster: ", unit_id, " at ", grid_pos, " id: ", roster_id_counter)
+
+func spawn_player_roster() -> void:
+	for entry in player_roster:
+		var unit = spawn_unit_by_id(entry["unit_id"], 0, entry["grid_pos"])
+		if unit:
+			unit.set_meta("roster_id", entry["roster_id"])
+			print("Spawning roster unit: ", entry["unit_id"], " at ", entry["grid_pos"], " id: ", entry["roster_id"])
+
+func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
@@ -113,9 +131,11 @@ func select_unit(unit: CharacterBody3D) -> void:
 	print("SELECTED UNIT: ", selected_unit.unit_name)
 
 func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:
+	var previous_grid_pos: Vector2i = unit.grid_position
 	unit.grid_position = grid_pos
 	unit.global_position = board.get_spawn_position(grid_pos)
 	print(unit.unit_name, " placed at: ", grid_pos)
+	update_player_roster_position(unit, grid_pos)
 
 func is_tile_occupied(grid_pos: Vector2i) -> bool:
 	var units := get_tree().get_nodes_in_group("units")
@@ -155,7 +175,11 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		var cost = data["base_price"]
 		
 		if player_gold >= cost:
-			spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
+			var unit = spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
+			add_player_roster_unit(selected_shop_unit_id, grid_pos)
+			if unit:
+				unit.set_meta("roster_id", roster_id_counter)
+				print("Set meta roster_id ", roster_id_counter, " on bought unit ", selected_shop_unit_id)
 			player_gold -= cost
 			update_gold_label()
 			print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos, " for ", cost, " gold")
@@ -263,7 +287,19 @@ func restart_round() -> void:
 	
 	update_gold_label()
 	populate_shop()
-	spawn_test_units()
+	spawn_player_roster()
+	spawn_enemy_test_units()
+
+func update_player_roster_position(unit: CharacterBody3D, new_grid_pos: Vector2i) -> void:
+	if unit.team_id != 0:
+		return
+	
+	var roster_id = unit.get_meta("roster_id")
+	for entry in player_roster:
+		if entry["roster_id"] == roster_id:
+			entry["grid_pos"] = new_grid_pos
+			print("Updated roster position for id ", roster_id, " to ", new_grid_pos)
+			return
 
 func clear_units() -> void:
 	for child in units_container.get_children():
