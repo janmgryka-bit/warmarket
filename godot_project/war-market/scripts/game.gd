@@ -1,5 +1,6 @@
 extends Node3D
 
+# References
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
 @onready var start_button: Button = $UI/StartBattleButton
@@ -8,12 +9,17 @@ extends Node3D
 @onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/GoldLabel
 
+# Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var unit_database = preload("res://scripts/unit_database.gd")
+
+# State
 var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
+
+# Economy
 var player_gold: int = 10
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
@@ -21,6 +27,7 @@ var shop_unit_ids: Array[String] = [
 	"viking_berserker"
 ]
 
+# Setup
 func _ready() -> void:
 	print("GAME READY")
 	
@@ -43,15 +50,17 @@ func _ready() -> void:
 	spawn_test_units()
 	populate_shop()
 
+# Frame Updates
 func _process(_delta: float) -> void:
 	if battle_started and not round_ended:
 		check_round_end()
 
+# Spawning
 func spawn_test_units() -> void:
 	spawn_unit_by_id("roman_legionary", 0, Vector2i(2, 6))
 	spawn_unit_by_id("roman_archer", 0, Vector2i(4, 7))
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
-	
+
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	
@@ -77,6 +86,7 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> Char
 	
 	return unit
 
+# Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
 	if battle_started:
 		print("Cannot select unit during battle")
@@ -120,6 +130,7 @@ func is_tile_occupied(grid_pos: Vector2i) -> bool:
 	
 	return false
 
+# Board Interaction
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	if battle_started:
 		print("Cannot move unit during battle")
@@ -169,13 +180,10 @@ func get_first_player_unit() -> CharacterBody3D:
 	
 	return null
 
+# Battle
 func _on_start_battle_button_pressed() -> void:
 	print("BUTTON CLICKED")
 	start_battle()
-
-func _on_restart_round_button_pressed() -> void:
-	print("RESTART CLICKED")
-	restart_round()
 
 func start_battle() -> void:
 	if battle_started:
@@ -237,6 +245,10 @@ func end_round(result_text: String) -> void:
 		if is_instance_valid(unit):
 			unit.stop_battle()
 
+func _on_restart_round_button_pressed() -> void:
+	print("RESTART CLICKED")
+	restart_round()
+
 func restart_round() -> void:
 	clear_units()
 	
@@ -255,6 +267,7 @@ func clear_units() -> void:
 	for child in units_container.get_children():
 		child.queue_free()
 
+# Shop
 func populate_shop() -> void:
 	clear_shop()
 	
@@ -310,5 +323,6 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 	
 	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
 
+# UI
 func update_gold_label() -> void:
 	gold_label.text = "Gold: %d" % player_gold
