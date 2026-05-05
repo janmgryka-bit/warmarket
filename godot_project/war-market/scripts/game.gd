@@ -29,7 +29,10 @@ var player_gold: int = starting_gold
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
-	"viking_berserker"
+	"viking_berserker",
+	"roman_spearman",
+	"viking_axeman",
+	"slav_hunter"
 ]
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
@@ -158,7 +161,6 @@ func select_unit(unit: CharacterBody3D) -> void:
 	print("SELECTED UNIT: ", selected_unit.unit_name)
 
 func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:
-	var previous_grid_pos: Vector2i = unit.grid_position
 	unit.grid_position = grid_pos
 	unit.global_position = board.get_spawn_position(grid_pos)
 	print(unit.unit_name, " placed at: ", grid_pos)
@@ -321,6 +323,9 @@ func restart_round() -> void:
 
 func update_player_roster_position(unit: CharacterBody3D, new_grid_pos: Vector2i) -> void:
 	if unit.team_id != 0:
+		return
+	
+	if not unit.has_meta("roster_id"):
 		return
 	
 	var roster_id = unit.get_meta("roster_id")
