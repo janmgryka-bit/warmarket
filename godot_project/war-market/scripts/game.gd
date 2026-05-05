@@ -11,6 +11,7 @@ extends Node3D
 @onready var round_label: Label = $UI/RoundLabel
 @onready var reroll_button: Button = $UI/RerollButton
 @onready var sell_unit_button: Button = $UI/SellUnitButton
+@onready var unit_cap_label: Label = $UI/UnitCapLabel
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -26,6 +27,7 @@ var selected_shop_unit_id: String = ""
 var starting_gold: int = 10
 var round_income: int = 5
 var reroll_cost: int = 2
+var max_player_units: int = 5
 var player_gold: int = starting_gold
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
@@ -66,6 +68,7 @@ func _ready() -> void:
 	spawn_test_units()
 	roll_shop_offers()
 	populate_shop()
+	update_unit_cap_label()
 	round_label.text = "Round: %d" % round_number
 
 # Frame Updates
@@ -204,6 +207,11 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		var data: Dictionary = unit_database.get_unit_data(selected_shop_unit_id)
 		var cost = data["base_price"]
 		
+		if player_roster.size() >= max_player_units:
+			print("Unit cap reached")
+			selected_shop_unit_id = ""
+			return
+		
 		if player_gold >= cost:
 			var unit = spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
 			add_player_roster_unit(selected_shop_unit_id, grid_pos)
@@ -212,6 +220,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 				print("Set meta roster_id ", roster_id_counter, " on bought unit ", selected_shop_unit_id)
 			player_gold -= cost
 			update_gold_label()
+			update_unit_cap_label()
 			print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos, " for ", cost, " gold")
 			populate_shop()
 		else:
@@ -318,6 +327,7 @@ func restart_round() -> void:
 	
 	update_gold_label()
 	round_label.text = "Round: %d" % round_number
+	update_unit_cap_label()
 	populate_shop()
 	spawn_player_roster()
 	spawn_enemy_wave(round_number)
@@ -457,9 +467,13 @@ func _on_sell_unit_button_pressed() -> void:
 	selected_unit = null
 	
 	update_gold_label()
+	update_unit_cap_label()
 	populate_shop()
 	print("Sold ", unit_data["name"], " for ", refund, " gold")
 
 # UI
 func update_gold_label() -> void:
 	gold_label.text = "Gold: %d" % player_gold
+
+func update_unit_cap_label() -> void:
+	unit_cap_label.text = "Units: %d / %d" % [player_roster.size(), max_player_units]

@@ -62,6 +62,13 @@ offset_right = 250.0
 offset_bottom = 210.0
 text = "Gold: 10"
 
+[node name="UnitCapLabel" type="Label" parent="UI" unique_id=1612883265]
+offset_left = 30.0
+offset_top = 210.0
+offset_right = 250.0
+offset_bottom = 240.0
+text = "Units: 0 / 5"
+
 [node name="SellUnitButton" type="Button" parent="UI" unique_id=1612883264]
 offset_left = 30.0
 offset_top = 230.0
