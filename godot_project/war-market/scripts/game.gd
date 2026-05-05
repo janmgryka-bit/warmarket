@@ -187,12 +187,8 @@ func is_tile_occupied(grid_pos: Vector2i) -> bool:
 
 # Board Interaction
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
-	if battle_started:
-		print("Cannot move unit during battle")
-		return
-	
-	if round_ended:
-		print("Cannot move unit after round ended")
+	if not is_preparation_phase():
+		print("Cannot interact with board outside preparation phase")
 		return
 	
 	if grid_pos.y < 4:
@@ -268,6 +264,9 @@ func start_battle() -> void:
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
 		unit.start_battle()
+
+func is_preparation_phase() -> bool:
+	return not battle_started and not round_ended
 
 func check_round_end() -> void:
 	var player_alive := false
@@ -380,12 +379,8 @@ func clear_shop() -> void:
 		child.queue_free()
 
 func _on_shop_card_pressed(unit_id: String) -> void:
-	if battle_started:
-		print("Cannot buy during battle")
-		return
-	
-	if round_ended:
-		print("Cannot buy after round ended")
+	if not is_preparation_phase():
+		print("Cannot buy outside preparation phase")
 		return
 	
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
@@ -407,8 +402,8 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
 
 func _on_reroll_button_pressed() -> void:
-	if battle_started:
-		print("Cannot reroll during battle")
+	if not is_preparation_phase():
+		print("Cannot reroll outside preparation phase")
 		return
 	
 	if player_gold < reroll_cost:
@@ -422,8 +417,8 @@ func _on_reroll_button_pressed() -> void:
 	print("Rerolled shop for ", reroll_cost, " gold")
 
 func _on_sell_unit_button_pressed() -> void:
-	if battle_started:
-		print("Cannot sell unit during battle")
+	if not is_preparation_phase():
+		print("Cannot sell outside preparation phase")
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
