@@ -20,7 +20,9 @@ var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
 
 # Economy
-var player_gold: int = 10
+var starting_gold: int = 10
+var round_income: int = 5
+var player_gold: int = starting_gold
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
@@ -205,8 +207,8 @@ func start_battle() -> void:
 		unit.start_battle()
 
 func check_round_end() -> void:
-	var blue_alive := false
-	var red_alive := false
+	var player_alive := false
+	var enemy_alive := false
 	
 	var units := get_tree().get_nodes_in_group("units")
 	
@@ -218,17 +220,17 @@ func check_round_end() -> void:
 			continue
 		
 		if unit.team_id == 0:
-			blue_alive = true
+			player_alive = true
 		elif unit.team_id == 1:
-			red_alive = true
+			enemy_alive = true
 	
-	if blue_alive and red_alive:
+	if player_alive and enemy_alive:
 		return
 	
-	if not blue_alive and red_alive:
-		end_round("RED WINS")
-	elif blue_alive and not red_alive:
-		end_round("BLUE WINS")
+	if not player_alive and enemy_alive:
+		end_round("ENEMY WINS")
+	elif player_alive and not enemy_alive:
+		end_round("PLAYER WINS")
 	else:
 		end_round("DRAW")
 
@@ -257,7 +259,7 @@ func restart_round() -> void:
 	round_result_label.text = ""
 	restart_button.visible = false
 	selected_unit = null
-	player_gold += 5
+	player_gold += round_income
 	
 	update_gold_label()
 	populate_shop()

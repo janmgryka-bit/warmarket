@@ -14,7 +14,7 @@ const UNITS := {
 		"attack_range": 1.4
 	},
 	
-		"roman_archer": {
+	"roman_archer": {
 		"name": "Rzymski Łucznik",
 		"faction": "Romans",
 		"role": "Ranged",
