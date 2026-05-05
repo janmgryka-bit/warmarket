@@ -31,6 +31,8 @@ var shop_unit_ids: Array[String] = [
 	"roman_archer",
 	"viking_berserker"
 ]
+var shop_offer_count: int = 3
+var current_shop_offers: Array[String] = []
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
 var round_number: int = 1
@@ -38,6 +40,8 @@ var round_number: int = 1
 # Setup
 func _ready() -> void:
 	print("GAME READY")
+	
+	randomize()
 	
 	if start_button == null:
 		print("ERROR: StartBattleButton not found")
@@ -56,6 +60,7 @@ func _ready() -> void:
 	
 	update_gold_label()
 	spawn_test_units()
+	roll_shop_offers()
 	populate_shop()
 	round_label.text = "Round: %d" % round_number
 
@@ -96,6 +101,12 @@ func spawn_enemy_wave(round_num: int) -> void:
 		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 		spawn_unit_by_id("viking_berserker", 1, Vector2i(6, 1))
 		spawn_unit_by_id("roman_archer", 1, Vector2i(4, 1))
+
+func roll_shop_offers() -> void:
+	current_shop_offers.clear()
+	for i in range(shop_offer_count):
+		var random_index = randi_range(0, shop_unit_ids.size() - 1)
+		current_shop_offers.append(shop_unit_ids[random_index])
 
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
@@ -327,7 +338,7 @@ func clear_units() -> void:
 func populate_shop() -> void:
 	clear_shop()
 	
-	for unit_id in shop_unit_ids:
+	for unit_id in current_shop_offers:
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		
 		if data.is_empty():
@@ -390,6 +401,7 @@ func _on_reroll_button_pressed() -> void:
 	
 	player_gold -= reroll_cost
 	update_gold_label()
+	roll_shop_offers()
 	populate_shop()
 	print("Rerolled shop for ", reroll_cost, " gold")
 
