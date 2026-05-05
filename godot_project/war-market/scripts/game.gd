@@ -6,6 +6,7 @@ extends Node3D
 @onready var restart_button: Button = $UI/RestartRoundButton
 @onready var round_result_label: Label = $UI/RoundResultLabel
 @onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
+@onready var gold_label: Label = $UI/GoldLabel
 
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var unit_database = preload("res://scripts/unit_database.gd")
@@ -13,6 +14,7 @@ var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
+var player_gold: int = 10
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
@@ -37,6 +39,7 @@ func _ready() -> void:
 	round_result_label.text = ""
 	restart_button.visible = false
 	
+	update_gold_label()
 	spawn_test_units()
 	populate_shop()
 
@@ -135,8 +138,18 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		return
 	
 	if selected_shop_unit_id != "":
-		spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
-		print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos)
+		var data: Dictionary = unit_database.get_unit_data(selected_shop_unit_id)
+		var cost = data["base_price"]
+		
+		if player_gold >= cost:
+			spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
+			player_gold -= cost
+			update_gold_label()
+			print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos, " for ", cost, " gold")
+			populate_shop()
+		else:
+			print("Cannot afford unit. Need ", cost, " gold, have ", player_gold)
+		
 		selected_shop_unit_id = ""
 		return
 
@@ -232,7 +245,10 @@ func restart_round() -> void:
 	round_result_label.text = ""
 	restart_button.visible = false
 	selected_unit = null
+	player_gold += 5
 	
+	update_gold_label()
+	populate_shop()
 	spawn_test_units()
 
 func clear_units() -> void:
@@ -250,11 +266,15 @@ func populate_shop() -> void:
 		
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(220, 90)
-		card.text = "%s\n%s\n%d gold" % [
+		var can_afford = player_gold >= data["base_price"]
+		var affordability_text = "(Affordable)" if can_afford else "(Too Expensive)"
+		card.text = "%s\n%s\n%d gold %s" % [
 			data["name"],
 			data["role"],
-			data["base_price"]
+			data["base_price"],
+			affordability_text
 		]
+		card.disabled = not can_afford
 		
 		card.pressed.connect(_on_shop_card_pressed.bind(unit_id))
 		shop_items.add_child(card)
@@ -277,10 +297,18 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 	if data.is_empty():
 		return
 	
+	var cost = data["base_price"]
+	if player_gold < cost:
+		print("Cannot afford ", data["name"], ". Need ", cost, " gold, have ", player_gold)
+		return
+	
 	selected_shop_unit_id = unit_id
 	
 	if selected_unit != null and is_instance_valid(selected_unit):
 		selected_unit.set_selected(false)
 	selected_unit = null
 	
-	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", data["base_price"])
+	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
+
+func update_gold_label() -> void:
+	gold_label.text = "Gold: %d" % player_gold

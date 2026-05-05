@@ -48,6 +48,13 @@ offset_right = 210.0
 offset_bottom = 140.0
 text = "Restart Round"
 
+[node name="GoldLabel" type="Label" parent="UI" unique_id=1612883263]
+offset_left = 30.0
+offset_top = 150.0
+offset_right = 210.0
+offset_bottom = 190.0
+text = "Gold: 10"
+
 [node name="ShopPanel" type="Panel" parent="UI" unique_id=1612883262]
 offset_left = 250.0
 offset_top = 560.0
