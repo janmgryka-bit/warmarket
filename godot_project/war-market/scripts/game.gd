@@ -8,6 +8,7 @@ extends Node3D
 @onready var round_result_label: Label = $UI/RoundResultLabel
 @onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/GoldLabel
+@onready var round_label: Label = $UI/RoundLabel
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -30,6 +31,7 @@ var shop_unit_ids: Array[String] = [
 ]
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
+var round_number: int = 1
 
 # Setup
 func _ready() -> void:
@@ -53,6 +55,7 @@ func _ready() -> void:
 	update_gold_label()
 	spawn_test_units()
 	populate_shop()
+	round_label.text = "Round: %d" % round_number
 
 # Frame Updates
 func _process(_delta: float) -> void:
@@ -64,7 +67,7 @@ func spawn_test_units() -> void:
 	add_player_roster_unit("roman_legionary", Vector2i(2, 6))
 	add_player_roster_unit("roman_archer", Vector2i(4, 7))
 	spawn_player_roster()
-	spawn_enemy_test_units()
+	spawn_enemy_wave(1)
 
 func add_player_roster_unit(unit_id: String, grid_pos: Vector2i) -> void:
 	roster_id_counter += 1
@@ -80,6 +83,17 @@ func spawn_player_roster() -> void:
 
 func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+
+func spawn_enemy_wave(round_num: int) -> void:
+	if round_num == 1:
+		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+	elif round_num == 2:
+		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+		spawn_unit_by_id("viking_berserker", 1, Vector2i(6, 1))
+	else:
+		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+		spawn_unit_by_id("viking_berserker", 1, Vector2i(6, 1))
+		spawn_unit_by_id("roman_archer", 1, Vector2i(4, 1))
 
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
@@ -283,12 +297,14 @@ func restart_round() -> void:
 	round_result_label.text = ""
 	restart_button.visible = false
 	selected_unit = null
+	round_number += 1
 	player_gold += round_income
 	
 	update_gold_label()
+	round_label.text = "Round: %d" % round_number
 	populate_shop()
 	spawn_player_roster()
-	spawn_enemy_test_units()
+	spawn_enemy_wave(round_number)
 
 func update_player_roster_position(unit: CharacterBody3D, new_grid_pos: Vector2i) -> void:
 	if unit.team_id != 0:
