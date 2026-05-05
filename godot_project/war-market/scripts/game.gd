@@ -9,6 +9,7 @@ extends Node3D
 @onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/GoldLabel
 @onready var round_label: Label = $UI/RoundLabel
+@onready var reroll_button: Button = $UI/RerollButton
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -23,6 +24,7 @@ var selected_shop_unit_id: String = ""
 # Economy
 var starting_gold: int = 10
 var round_income: int = 5
+var reroll_cost: int = 2
 var player_gold: int = starting_gold
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
@@ -376,6 +378,20 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 	selected_unit = null
 	
 	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
+
+func _on_reroll_button_pressed() -> void:
+	if battle_started:
+		print("Cannot reroll during battle")
+		return
+	
+	if player_gold < reroll_cost:
+		print("Cannot afford reroll. Need ", reroll_cost, " gold, have ", player_gold)
+		return
+	
+	player_gold -= reroll_cost
+	update_gold_label()
+	populate_shop()
+	print("Rerolled shop for ", reroll_cost, " gold")
 
 # UI
 func update_gold_label() -> void:

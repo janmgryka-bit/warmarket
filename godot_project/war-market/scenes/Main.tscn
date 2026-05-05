@@ -75,5 +75,13 @@ offset_top = 15.0
 offset_right = 735.0
 offset_bottom = 115.0
 
+[node name="RerollButton" type="Button" parent="UI" unique_id=2048921484]
+offset_left = 555.0
+offset_top = 520.0
+offset_right = 735.0
+offset_bottom = 555.0
+text = "Reroll (2g)"
+
 [connection signal="pressed" from="UI/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
 [connection signal="pressed" from="UI/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
+[connection signal="pressed" from="UI/RerollButton" to="." method="_on_reroll_button_pressed"]
