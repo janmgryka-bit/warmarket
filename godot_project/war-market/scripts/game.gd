@@ -378,6 +378,7 @@ func restart_round() -> void:
 	update_gold_label()
 	round_label.text = "Round: %d" % round_number
 	update_unit_cap_label()
+	roll_shop_offers()
 	populate_shop()
 	spawn_player_roster()
 	spawn_enemy_wave(round_number)
