@@ -38,6 +38,45 @@ const UNITS := {
 		"attack_cooldown": 1.1,
 		"move_speed": 2.3,
 		"attack_range": 1.4
+	},
+	
+	"roman_spearman": {
+		"name": "Roman Spearman",
+		"faction": "Romans",
+		"role": "Fighter",
+		"tier": 1,
+		"base_price": 3,
+		"max_hp": 100,
+		"damage": 14,
+		"attack_cooldown": 1.1,
+		"move_speed": 2.0,
+		"attack_range": 1.6
+	},
+	
+	"viking_axeman": {
+		"name": "Viking Axeman",
+		"faction": "Vikings",
+		"role": "Fighter",
+		"tier": 1,
+		"base_price": 3,
+		"max_hp": 95,
+		"damage": 16,
+		"attack_cooldown": 1.2,
+		"move_speed": 2.3,
+		"attack_range": 1.3
+	},
+	
+	"slav_hunter": {
+		"name": "Slav Hunter",
+		"faction": "Slavs",
+		"role": "Ranged",
+		"tier": 1,
+		"base_price": 3,
+		"max_hp": 75,
+		"damage": 10,
+		"attack_cooldown": 1.0,
+		"move_speed": 2.0,
+		"attack_range": 4.0
 	}
 }
 
