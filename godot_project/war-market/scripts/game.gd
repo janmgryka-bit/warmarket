@@ -12,6 +12,8 @@ extends Node3D
 @onready var reroll_button: Button = $UI/RerollButton
 @onready var sell_unit_button: Button = $UI/SellUnitButton
 @onready var unit_cap_label: Label = $UI/UnitCapLabel
+@onready var bench_label: Label = $UI/BenchPanel/BenchLabel
+@onready var bench_items: HBoxContainer = $UI/BenchPanel/BenchItems
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -55,6 +57,9 @@ var current_shop_offers: Array[String] = []
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
 var round_number: int = 1
+var bench_units: Array[Dictionary] = []
+var max_bench_units: int = 6
+var selected_bench_index: int = -1
 
 # Setup
 func _ready() -> void:
@@ -82,6 +87,7 @@ func _ready() -> void:
 	roll_shop_offers()
 	populate_shop()
 	update_unit_cap_label()
+	update_bench_ui()
 	round_label.text = "Round: %d" % round_number
 
 # Frame Updates
@@ -485,3 +491,33 @@ func update_gold_label() -> void:
 
 func update_unit_cap_label() -> void:
 	unit_cap_label.text = "Units: %d / %d" % [player_roster.size(), max_player_units]
+
+func update_bench_ui() -> void:
+	bench_label.text = "Bench: %d / %d" % [bench_units.size(), max_bench_units]
+	for child in bench_items.get_children():
+		child.queue_free()
+
+	for i in range(bench_units.size()):
+		var entry = bench_units[i]
+		var unit_id = entry.get("unit_id", "")
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		var button = Button.new()
+		button.custom_minimum_size = Vector2(220, 90)
+		button.text = data.get("name", unit_id)
+		button.pressed.connect(_on_bench_unit_pressed.bind(i))
+		bench_items.add_child(button)
+
+func _on_bench_unit_pressed(index: int) -> void:
+	if not is_preparation_phase():
+		print("Cannot select bench unit outside preparation phase")
+		return
+
+	if index < 0 or index >= bench_units.size():
+		print("Bench index out of range: ", index)
+		return
+
+	selected_bench_index = index
+	clear_all_selection()
+	var unit_id = bench_units[index].get("unit_id", "")
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	print("SELECTED BENCH UNIT: ", data.get("name", unit_id))
