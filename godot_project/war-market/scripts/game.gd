@@ -46,6 +46,8 @@ func clear_all_selection() -> void:
 var starting_gold: int = 10
 var round_income: int = 5
 var reroll_cost: int = 2
+var win_bonus_gold: int = 2
+var draw_bonus_gold: int = 1
 var max_player_units: int = 5
 var player_gold: int = starting_gold
 var shop_unit_ids: Array[String] = [
@@ -62,6 +64,7 @@ var sold_shop_offer_indices: Array[int] = []
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
 var round_number: int = 1
+var last_round_result: String = ""
 var bench_units: Array[Dictionary] = []
 var max_bench_units: int = 6
 var selected_bench_index: int = -1
@@ -352,6 +355,7 @@ func end_round(result_text: String) -> void:
 	battle_started = false
 	
 	print("ROUND ENDED: ", result_text)
+	last_round_result = result_text
 	round_result_label.text = result_text
 	restart_button.visible = true
 	
@@ -374,6 +378,17 @@ func restart_round() -> void:
 	clear_all_selection()
 	round_number += 1
 	player_gold += round_income
+	
+	if last_round_result == "PLAYER WINS":
+		player_gold += win_bonus_gold
+		print("Round income: ", round_income, " + win bonus: ", win_bonus_gold)
+	elif last_round_result == "DRAW":
+		player_gold += draw_bonus_gold
+		print("Round income: ", round_income, " + draw bonus: ", draw_bonus_gold)
+	else:
+		print("Round income: ", round_income, " (no bonus)")
+	
+	last_round_result = ""
 	
 	update_gold_label()
 	round_label.text = "Round: %d" % round_number
