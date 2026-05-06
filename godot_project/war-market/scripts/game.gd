@@ -475,6 +475,25 @@ func _on_sell_unit_button_pressed() -> void:
 		print("Cannot sell outside preparation phase")
 		return
 	
+	if selected_bench_index >= 0 and selected_bench_index < bench_units.size():
+		var entry = bench_units[selected_bench_index]
+		var unit_id = entry.get("unit_id", "")
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		if data.is_empty():
+			print("Bench unit data not found for ", unit_id)
+			return
+		
+		var refund = data["base_price"]
+		player_gold += refund
+		bench_units.remove_at(selected_bench_index)
+		selected_bench_index = -1
+		update_gold_label()
+		update_bench_ui()
+		populate_shop()
+		clear_all_selection()
+		print("Sold bench ", data["name"], " for ", refund, " gold")
+		return
+	
 	if selected_unit == null or not is_instance_valid(selected_unit):
 		print("No unit selected to sell")
 		return
