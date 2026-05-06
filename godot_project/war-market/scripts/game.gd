@@ -502,21 +502,21 @@ func _on_sell_unit_button_pressed() -> void:
 	
 	if selected_bench_index >= 0 and selected_bench_index < bench_units.size():
 		var entry = bench_units[selected_bench_index]
-		var unit_id = entry.get("unit_id", "")
-		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		if data.is_empty():
-			print("Bench unit data not found for ", unit_id)
+		var bench_unit_id = entry.get("unit_id", "")
+		var bench_data: Dictionary = unit_database.get_unit_data(bench_unit_id)
+		if bench_data.is_empty():
+			print("Bench unit data not found for ", bench_unit_id)
 			return
 		
-		var refund = data["base_price"]
-		player_gold += refund
+		var bench_refund = bench_data["base_price"]
+		player_gold += bench_refund
 		bench_units.remove_at(selected_bench_index)
 		selected_bench_index = -1
 		update_gold_label()
 		update_bench_ui()
 		populate_shop()
 		clear_all_selection()
-		print("Sold bench ", data["name"], " for ", refund, " gold")
+		print("Sold bench ", bench_data["name"], " for ", bench_refund, " gold")
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -545,16 +545,16 @@ func _on_sell_unit_button_pressed() -> void:
 		print("Roster entry not found for unit with roster_id ", roster_id)
 		return
 	
-	var unit_id = roster_entry["unit_id"]
-	var unit_data = unit_database.get_unit_data(unit_id)
+	var deployed_unit_id = roster_entry["unit_id"]
+	var deployed_data = unit_database.get_unit_data(deployed_unit_id)
 	
-	if unit_data.is_empty():
-		print("Unit data not found for unit_id ", unit_id)
+	if deployed_data.is_empty():
+		print("Unit data not found for unit_id ", deployed_unit_id)
 		return
 	
-	var refund = unit_data["base_price"]
+	var deployed_refund = deployed_data["base_price"]
 	
-	player_gold += refund
+	player_gold += deployed_refund
 	player_roster.remove_at(roster_index)
 	selected_unit.queue_free()
 	clear_all_selection()
@@ -562,7 +562,7 @@ func _on_sell_unit_button_pressed() -> void:
 	update_gold_label()
 	update_unit_cap_label()
 	populate_shop()
-	print("Sold ", unit_data["name"], " for ", refund, " gold")
+	print("Sold ", deployed_data["name"], " for ", deployed_refund, " gold")
 
 # UI
 func update_gold_label() -> void:
