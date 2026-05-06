@@ -58,6 +58,7 @@ var shop_unit_ids: Array[String] = [
 ]
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
+var sold_shop_offer_indices: Array[int] = []
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
 var round_number: int = 1
@@ -134,6 +135,7 @@ func spawn_enemy_wave(round_num: int) -> void:
 
 func roll_shop_offers() -> void:
 	current_shop_offers.clear()
+	sold_shop_offer_indices.clear()
 	for i in range(shop_offer_count):
 		var random_index = randi_range(0, shop_unit_ids.size() - 1)
 		current_shop_offers.append(shop_unit_ids[random_index])
@@ -402,7 +404,8 @@ func clear_units() -> void:
 func populate_shop() -> void:
 	clear_shop()
 	
-	for unit_id in current_shop_offers:
+	for i in range(current_shop_offers.size()):
+		var unit_id = current_shop_offers[i]
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		
 		if data.is_empty():
@@ -410,24 +413,29 @@ func populate_shop() -> void:
 		
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(220, 90)
-		var can_afford = player_gold >= data["base_price"]
-		var affordability_text = "(Affordable)" if can_afford else "(Too Expensive)"
-		card.text = "%s\n%s\n%d gold %s" % [
-			data["name"],
-			data["role"],
-			data["base_price"],
-			affordability_text
-		]
-		card.disabled = not can_afford
 		
-		card.pressed.connect(_on_shop_card_pressed.bind(unit_id))
+		if i in sold_shop_offer_indices:
+			card.text = "SOLD"
+			card.disabled = true
+		else:
+			var can_afford = player_gold >= data["base_price"]
+			var affordability_text = "(Affordable)" if can_afford else "(Too Expensive)"
+			card.text = "%s\n%s\n%d gold %s" % [
+				data["name"],
+				data["role"],
+				data["base_price"],
+				affordability_text
+			]
+			card.disabled = not can_afford
+			card.pressed.connect(_on_shop_card_pressed.bind(unit_id, i))
+		
 		shop_items.add_child(card)
 
 func clear_shop() -> void:
 	for child in shop_items.get_children():
 		child.queue_free()
 
-func _on_shop_card_pressed(unit_id: String) -> void:
+func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	if not is_preparation_phase():
 		print("Cannot buy outside preparation phase")
 		return
@@ -448,6 +456,7 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 	
 	player_gold -= cost
 	bench_units.append({"unit_id": unit_id})
+	sold_shop_offer_indices.append(offer_index)
 	update_gold_label()
 	update_bench_ui()
 	populate_shop()
