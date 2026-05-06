@@ -34,9 +34,13 @@ func clear_unit_selection() -> void:
 		selected_unit.set_selected(false)
 	selected_unit = null
 
+func clear_bench_selection() -> void:
+	selected_bench_index = -1
+
 func clear_all_selection() -> void:
 	clear_shop_selection()
 	clear_unit_selection()
+	clear_bench_selection()
 
 # Economy
 var starting_gold: int = 10
@@ -170,6 +174,7 @@ func _on_unit_clicked(unit: CharacterBody3D) -> void:
 		return
 	
 	clear_shop_selection()
+	clear_bench_selection()
 	
 	# Toggle selection: if already selected, deselect
 	if selected_unit != null and is_instance_valid(selected_unit) and selected_unit == unit:
@@ -220,31 +225,9 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	if is_tile_occupied(grid_pos):
 		print("Tile occupied: ", grid_pos)
 		return
-	
-	if selected_shop_unit_id != "":
-		var data: Dictionary = unit_database.get_unit_data(selected_shop_unit_id)
-		var cost = data["base_price"]
-		
-		if player_roster.size() >= max_player_units:
-			print("Unit cap reached")
-			clear_shop_selection()
-			return
-		
-		if player_gold >= cost:
-			var unit = spawn_unit_by_id(selected_shop_unit_id, 0, grid_pos)
-			add_player_roster_unit(selected_shop_unit_id, grid_pos)
-			if unit:
-				unit.set_meta("roster_id", roster_id_counter)
-				print("Set meta roster_id ", roster_id_counter, " on bought unit ", selected_shop_unit_id)
-			player_gold -= cost
-			update_gold_label()
-			update_unit_cap_label()
-			print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos, " for ", cost, " gold")
-			populate_shop()
-			clear_shop_selection()
-		else:
-			print("Cannot afford unit. Need ", cost, " gold, have ", player_gold)
-			clear_shop_selection()
+
+	if selected_bench_index >= 0 and selected_bench_index < bench_units.size():
+		try_deploy_bench_unit(grid_pos)
 		return
 
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -254,6 +237,51 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	place_unit_on_grid(selected_unit, grid_pos)
 	print("Moved selected unit to: ", grid_pos)
 	clear_unit_selection()
+
+func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
+	if not is_preparation_phase():
+		print("Cannot deploy bench unit outside preparation phase")
+		return false
+
+	if selected_bench_index < 0 or selected_bench_index >= bench_units.size():
+		print("No bench unit selected")
+		return false
+
+	if grid_pos.y < 4:
+		print("Cannot deploy to enemy half")
+		return false
+
+	if is_tile_occupied(grid_pos):
+		print("Cannot deploy to occupied tile: ", grid_pos)
+		return false
+
+	if player_roster.size() >= max_player_units:
+		print("Unit cap reached")
+		return false
+
+	var entry = bench_units[selected_bench_index]
+	var unit_id = entry.get("unit_id", "")
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	if data.is_empty():
+		print("Bench unit data not found for ", unit_id)
+		return false
+
+	add_player_roster_unit(unit_id, grid_pos)
+	var unit = spawn_unit_by_id(unit_id, 0, grid_pos)
+	if unit:
+		unit.set_meta("roster_id", roster_id_counter)
+	else:
+		player_roster.remove_at(player_roster.size() - 1)
+		print("Failed to spawn bench unit: ", data.get("name", unit_id))
+		return false
+
+	bench_units.remove_at(selected_bench_index)
+	selected_bench_index = -1
+	update_bench_ui()
+	update_unit_cap_label()
+	clear_all_selection()
+	print("Deployed ", data.get("name", unit_id), " from bench at ", grid_pos)
+	return true
 
 func get_first_player_unit() -> CharacterBody3D:
 	var units := get_tree().get_nodes_in_group("units")
@@ -414,10 +442,17 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 		print("Cannot afford ", data["name"], ". Need ", cost, " gold, have ", player_gold)
 		return
 	
-	clear_all_selection()
-	selected_shop_unit_id = unit_id
+	if bench_units.size() >= max_bench_units:
+		print("Bench is full")
+		return
 	
-	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
+	player_gold -= cost
+	bench_units.append({"unit_id": unit_id})
+	update_gold_label()
+	update_bench_ui()
+	populate_shop()
+	clear_all_selection()
+	print("Bought ", data["name"], " to bench for ", cost, " gold")
 
 func _on_reroll_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -517,7 +552,8 @@ func _on_bench_unit_pressed(index: int) -> void:
 		return
 
 	selected_bench_index = index
-	clear_all_selection()
+	clear_shop_selection()
+	clear_unit_selection()
 	var unit_id = bench_units[index].get("unit_id", "")
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	print("SELECTED BENCH UNIT: ", data.get("name", unit_id))
