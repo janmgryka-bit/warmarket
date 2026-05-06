@@ -23,6 +23,19 @@ var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
 
+# Selection Helpers
+func clear_shop_selection() -> void:
+	selected_shop_unit_id = ""
+
+func clear_unit_selection() -> void:
+	if selected_unit != null and is_instance_valid(selected_unit):
+		selected_unit.set_selected(false)
+	selected_unit = null
+
+func clear_all_selection() -> void:
+	clear_shop_selection()
+	clear_unit_selection()
+
 # Economy
 var starting_gold: int = 10
 var round_income: int = 5
@@ -142,24 +155,27 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> Char
 
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
-	if battle_started:
-		print("Cannot select unit during battle")
-		return
-	
-	if round_ended:
-		print("Cannot select unit after round ended")
+	if not is_preparation_phase():
+		print("Cannot select unit outside preparation phase")
 		return
 	
 	if unit.team_id != 0:
 		print("Cannot select enemy unit")
 		return
 	
+	clear_shop_selection()
+	
+	# Toggle selection: if already selected, deselect
+	if selected_unit != null and is_instance_valid(selected_unit) and selected_unit == unit:
+		clear_unit_selection()
+		print("DESELECTED UNIT")
+		return
+	
+	# Otherwise select the new unit
+	clear_unit_selection()
 	select_unit(unit)
 
 func select_unit(unit: CharacterBody3D) -> void:
-	if selected_unit != null and is_instance_valid(selected_unit):
-		selected_unit.set_selected(false)
-	
 	selected_unit = unit
 	selected_unit.set_selected(true)
 	print("SELECTED UNIT: ", selected_unit.unit_name)
@@ -205,7 +221,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		
 		if player_roster.size() >= max_player_units:
 			print("Unit cap reached")
-			selected_shop_unit_id = ""
+			clear_shop_selection()
 			return
 		
 		if player_gold >= cost:
@@ -219,10 +235,10 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 			update_unit_cap_label()
 			print("Bought and placed unit: ", selected_shop_unit_id, " at ", grid_pos, " for ", cost, " gold")
 			populate_shop()
+			clear_shop_selection()
 		else:
 			print("Cannot afford unit. Need ", cost, " gold, have ", player_gold)
-		
-		selected_shop_unit_id = ""
+			clear_shop_selection()
 		return
 
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -231,6 +247,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 
 	place_unit_on_grid(selected_unit, grid_pos)
 	print("Moved selected unit to: ", grid_pos)
+	clear_unit_selection()
 
 func get_first_player_unit() -> CharacterBody3D:
 	var units := get_tree().get_nodes_in_group("units")
@@ -255,9 +272,7 @@ func start_battle() -> void:
 	round_result_label.text = ""
 	restart_button.visible = false
 	
-	if selected_unit != null and is_instance_valid(selected_unit):
-		selected_unit.set_selected(false)
-	selected_unit = null
+	clear_all_selection()
 	
 	print("BATTLE STARTED")
 	
@@ -320,7 +335,7 @@ func restart_round() -> void:
 	round_ended = false
 	round_result_label.text = ""
 	restart_button.visible = false
-	selected_unit = null
+	clear_all_selection()
 	round_number += 1
 	player_gold += round_income
 	
@@ -393,11 +408,8 @@ func _on_shop_card_pressed(unit_id: String) -> void:
 		print("Cannot afford ", data["name"], ". Need ", cost, " gold, have ", player_gold)
 		return
 	
+	clear_all_selection()
 	selected_shop_unit_id = unit_id
-	
-	if selected_unit != null and is_instance_valid(selected_unit):
-		selected_unit.set_selected(false)
-	selected_unit = null
 	
 	print("SELECTED SHOP UNIT: ", data["name"], " / price: ", cost)
 
@@ -410,6 +422,7 @@ func _on_reroll_button_pressed() -> void:
 		print("Cannot afford reroll. Need ", reroll_cost, " gold, have ", player_gold)
 		return
 	
+	clear_shop_selection()
 	player_gold -= reroll_cost
 	update_gold_label()
 	roll_shop_offers()
@@ -459,7 +472,7 @@ func _on_sell_unit_button_pressed() -> void:
 	player_gold += refund
 	player_roster.remove_at(roster_index)
 	selected_unit.queue_free()
-	selected_unit = null
+	clear_all_selection()
 	
 	update_gold_label()
 	update_unit_cap_label()
