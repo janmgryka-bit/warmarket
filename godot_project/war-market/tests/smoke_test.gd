@@ -51,6 +51,9 @@ func _init() -> void:
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
 	await run_test("Player loss damage", Callable(self, "test_player_loss_damage"))
+	await run_test("Combat balance equal mirror", Callable(self, "test_combat_balance_equal_mirror"))
+	await run_test("Combat balance stronger player", Callable(self, "test_combat_balance_stronger_player"))
+	await run_test("Combat balance stronger opponent", Callable(self, "test_combat_balance_stronger_opponent"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
 	await run_test("Battle summary", Callable(self, "test_battle_summary"))
 	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
@@ -747,6 +750,42 @@ func test_player_loss_damage() -> void:
 	assert_eq(game.player_health, health_before, "Winning should not damage player health")
 	assert_eq(game.last_battle_summary["player_damage_taken"], 0, "Winning summary should record no player damage")
 
+func test_combat_balance_equal_mirror() -> void:
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 6), "star_level": 1}
+	], [
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 1), "star_level": 1},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1), "star_level": 1}
+	])
+
+	await run_battle_until_round_end(game)
+	assert_true(
+		game.last_round_result in ["PLAYER WINS", "ENEMY WINS", "DRAW"],
+		"Equal mirror battle should end with a valid result"
+	)
+	assert_true(not game.last_battle_summary.is_empty(), "Equal mirror battle should record a summary")
+
+func test_combat_balance_stronger_player() -> void:
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_centurion", "grid_pos": Vector2i(3, 6), "star_level": 2}
+	], [
+		{"unit_id": "roman_spearman", "grid_pos": Vector2i(3, 1), "star_level": 1}
+	])
+
+	await run_battle_until_round_end(game)
+	assert_eq(game.last_round_result, "PLAYER WINS", "2-star tier 2 player unit should beat a 1-star tier 1 opponent")
+
+func test_combat_balance_stronger_opponent() -> void:
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_spearman", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [
+		{"unit_id": "roman_centurion", "grid_pos": Vector2i(3, 1), "star_level": 2}
+	])
+
+	await run_battle_until_round_end(game)
+	assert_eq(game.last_round_result, "ENEMY WINS", "1-star tier 1 player unit should lose to a 2-star tier 2 opponent")
+
 func test_battle_summary() -> void:
 	var game = await load_game()
 	var battle_id_before = game.current_battle_id
@@ -963,6 +1002,58 @@ func test_next_round_bonus() -> void:
 	assert_eq(game.player_gold, gold_before + game.round_income + game.win_bonus_gold + interest_before + streak_bonus_before, "Gold should include income, win bonus, interest, and streak bonus")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop offers should refresh after next round")
 	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared after next round")
+
+func setup_roster_for_test(player_units: Array[Dictionary], opponent_units: Array[Dictionary]) -> Node:
+	var game = await load_game()
+	game.clear_units()
+	await process_frame
+
+	game.player_roster.clear()
+	game.bench_units.clear()
+	game.roster_id_counter = 0
+	game.selected_bench_index = -1
+	game.selected_unit = null
+	game.battle_started = false
+	game.round_ended = false
+	game.last_round_result = ""
+	game.round_result_label.text = ""
+	game.restart_button.visible = false
+	game.use_snapshot_opponent = false
+	game.opponent_army_snapshot.clear()
+	game.player_health = game.starting_player_health
+	game.update_player_health_label()
+
+	for entry in player_units:
+		var item_ids: Array[String] = []
+		for item_id in entry.get("item_ids", []):
+			item_ids.append(str(item_id))
+		game.add_player_roster_unit(
+			entry.get("unit_id", ""),
+			entry.get("grid_pos", Vector2i.ZERO),
+			entry.get("star_level", 1),
+			item_ids
+		)
+	game.spawn_player_roster()
+
+	for entry in opponent_units:
+		game.spawn_unit_by_id(
+			entry.get("unit_id", ""),
+			1,
+			entry.get("grid_pos", Vector2i.ZERO),
+			entry.get("star_level", 1)
+		)
+
+	await process_frame
+	game.refresh_player_unit_bonuses()
+	return game
+
+func run_battle_until_round_end(game, max_frames: int = 3000) -> void:
+	game.start_battle()
+	var frames := 0
+	while not game.round_ended and frames < max_frames:
+		await process_frame
+		frames += 1
+	assert_true(game.round_ended, "Battle should end before max frame budget")
 
 func find_affordable_shop_offer(game) -> int:
 	for i in range(game.current_shop_offers.size()):
