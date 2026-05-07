@@ -57,6 +57,7 @@ func _init() -> void:
 	await run_test("Combat balance stronger opponent", Callable(self, "test_combat_balance_stronger_opponent"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
 	await run_test("Battle summary", Callable(self, "test_battle_summary"))
+	await run_test("Battle summary export", Callable(self, "test_battle_summary_export"))
 	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
@@ -827,6 +828,20 @@ func test_battle_summary() -> void:
 
 	game.reset_game()
 	assert_eq(game.battle_history.size(), 0, "Battle history should clear on reset")
+
+func test_battle_summary_export() -> void:
+	var game = await load_game()
+	game.export_battle_summaries = true
+	game.start_battle()
+	game.end_round("PLAYER WINS")
+	game.export_last_battle_summary()
+
+	var export_path = "%s/battle_%d_round_%d.json" % [
+		game.battle_summary_export_dir,
+		game.current_battle_id,
+		game.round_number
+	]
+	assert_true(FileAccess.file_exists(export_path), "Battle summary export file should exist")
 
 func test_victory_after_round_ten() -> void:
 	var game = await load_game()

@@ -59,6 +59,8 @@ var current_battle_seed: int = 0
 var current_battle_payload: Dictionary = {}
 var battle_history: Array[Dictionary] = []
 var max_battle_history_entries: int = 20
+var export_battle_summaries: bool = false
+var battle_summary_export_dir: String = "user://battle_summaries"
 var action_feedback_timer: Timer = null
 
 # Selection Helpers
@@ -1017,6 +1019,29 @@ func record_battle_summary(summary: Dictionary) -> void:
 	while battle_history.size() > max_battle_history_entries:
 		battle_history.remove_at(0)
 
+func export_last_battle_summary() -> void:
+	if not export_battle_summaries:
+		return
+	if last_battle_summary.is_empty():
+		return
+
+	var error := DirAccess.make_dir_recursive_absolute(battle_summary_export_dir)
+	if error != OK:
+		print("Failed to create battle summary export dir: ", battle_summary_export_dir, " error: ", error)
+		return
+
+	var battle_id = last_battle_summary.get("battle_id", 0)
+	var summary_round = last_battle_summary.get("round_number", round_number)
+	var file_path = "%s/battle_%d_round_%d.json" % [battle_summary_export_dir, battle_id, summary_round]
+	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	if file == null:
+		print("Failed to export battle summary: ", file_path, " error: ", FileAccess.get_open_error())
+		return
+
+	file.store_string(JSON.stringify(last_battle_summary, "\t"))
+	file.close()
+	print("Exported battle summary to ", file_path)
+
 func get_battle_history_summary_text() -> String:
 	if battle_history.is_empty():
 		return "Battle History: None"
@@ -1038,6 +1063,7 @@ func end_round(result_text: String) -> void:
 	
 	last_battle_summary = create_battle_summary(result_text, player_damage_taken)
 	record_battle_summary(last_battle_summary)
+	export_last_battle_summary()
 	print("Battle summary recorded")
 	update_streaks_for_result(result_text)
 
