@@ -70,6 +70,14 @@ var shop_unit_ids: Array[String] = [
 	"viking_axeman",
 	"slav_hunter"
 ]
+var shop_tier_odds := {
+	1: {1: 100},
+	2: {1: 100},
+	3: {1: 85, 2: 15},
+	4: {1: 70, 2: 30},
+	5: {1: 55, 2: 40, 3: 5},
+	6: {1: 40, 2: 45, 3: 15}
+}
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
@@ -195,8 +203,47 @@ func roll_shop_offers() -> void:
 	current_shop_offers.clear()
 	sold_shop_offer_indices.clear()
 	for i in range(shop_offer_count):
-		var random_index = randi_range(0, shop_unit_ids.size() - 1)
-		current_shop_offers.append(shop_unit_ids[random_index])
+		var tier = roll_unit_tier_for_shop()
+		var pool = get_shop_pool_for_tier(tier)
+		if pool.is_empty():
+			pool = get_shop_pool_for_tier(1)
+		if pool.is_empty():
+			print("No units available for shop roll")
+			return
+		var random_index = randi_range(0, pool.size() - 1)
+		current_shop_offers.append(pool[random_index])
+
+func get_shop_odds_for_level(level: int) -> Dictionary:
+	var odds_level = clamp(level, 1, max_player_level)
+	return shop_tier_odds.get(odds_level, shop_tier_odds[1])
+
+func roll_unit_tier_for_shop() -> int:
+	var odds = get_shop_odds_for_level(player_level)
+	var total_weight = 0
+	for tier in odds.keys():
+		total_weight += odds[tier]
+
+	if total_weight <= 0:
+		return 1
+
+	var roll = randi_range(1, total_weight)
+	var running_total = 0
+	for tier in odds.keys():
+		running_total += odds[tier]
+		if roll <= running_total:
+			return tier
+
+	return 1
+
+func get_shop_pool_for_tier(tier: int) -> Array[String]:
+	var pool: Array[String] = []
+	for unit_id in shop_unit_ids:
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		if data.is_empty():
+			continue
+		if data.get("tier", 1) == tier:
+			pool.append(unit_id)
+	return pool
 
 func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_level: int = 1) -> CharacterBody3D:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)

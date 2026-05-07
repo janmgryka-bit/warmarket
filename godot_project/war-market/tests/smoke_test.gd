@@ -25,6 +25,7 @@ func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
+	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -62,6 +63,7 @@ func test_initial_state() -> void:
 	assert_eq(game.player_health, game.starting_player_health, "Initial player health should equal starting health")
 	assert_eq(game.round_number, 1, "Round should start at 1")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop should show the configured number of offers")
+	assert_valid_shop_offers(game)
 	assert_eq(game.bench_units.size(), 0, "Bench should be empty at start")
 	assert_eq(game.player_level, 1, "Player should start at level 1")
 	assert_eq(game.player_xp, 0, "Player should start with 0 XP")
@@ -97,6 +99,22 @@ func test_buy_xp() -> void:
 	assert_eq(game.player_gold, gold_before, "Buying XP at max level should not spend gold")
 	assert_eq(game.player_level, game.max_player_level, "Buying XP at max level should not change level")
 	assert_eq(game.player_xp, 0, "Buying XP at max level should not add XP")
+
+func test_shop_tier_rolls() -> void:
+	var game = await load_game()
+	game.roll_shop_offers()
+	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should produce the configured offer count")
+	assert_valid_shop_offers(game)
+
+	game.player_level = 6
+	game.roll_shop_offers()
+	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Level 6 shop roll should produce the configured offer count")
+	assert_valid_shop_offers(game)
+
+	game.shop_tier_odds[6] = {2: 100}
+	game.roll_shop_offers()
+	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should fall back when the rolled tier pool is empty")
+	assert_valid_shop_offers(game)
 
 func test_reroll() -> void:
 	var game = await load_game()
@@ -470,3 +488,8 @@ func buy_xp_for_extra_unit_cap(game) -> void:
 		return
 	game._on_buy_xp_button_pressed()
 	assert_true(game.player_roster.size() < game.max_player_units, "Buying XP should create room for one more deployed unit")
+
+func assert_valid_shop_offers(game) -> void:
+	for unit_id in game.current_shop_offers:
+		assert_true(unit_id in game.shop_unit_ids, "Shop offer should come from shop_unit_ids")
+		assert_true(not game.unit_database.get_unit_data(unit_id).is_empty(), "Shop offer should have unit data")
