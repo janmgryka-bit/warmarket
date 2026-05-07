@@ -95,6 +95,7 @@ func test_initial_state() -> void:
 	assert_true(game.item_label != null, "ItemLabel should exist")
 	assert_eq(game.item_inventory.size(), 0, "Item inventory should start empty")
 	assert_eq(game.item_label.text, "Items: 0", "ItemLabel should show empty inventory")
+	assert_true(game.audio_manager != null, "AudioManager should exist")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -162,6 +163,7 @@ func test_action_feedback() -> void:
 	assert_true("Test message" in game.action_feedback_label.text, "Action feedback should show the requested message")
 	game.clear_action_feedback()
 	assert_true(not game.action_feedback_label.visible or game.action_feedback_label.text == "", "Action feedback should clear")
+	game.play_audio_event("buy")
 
 func test_items() -> void:
 	var game = await load_game()

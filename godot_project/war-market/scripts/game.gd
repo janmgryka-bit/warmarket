@@ -3,6 +3,7 @@ extends Node3D
 # References
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
+@onready var audio_manager: Node = $AudioManager
 @onready var start_button: Button = $UI/HudContainer/StartBattleButton
 @onready var battle_speed_button: Button = $UI/HudContainer/BattleSpeedButton
 @onready var restart_button: Button = $UI/RestartRoundButton
@@ -112,6 +113,14 @@ func get_blocked_action_feedback() -> String:
 	if round_ended:
 		return "Round ended"
 	return "Not available"
+
+func play_audio_event(event_name: String) -> void:
+	if audio_manager == null:
+		return
+
+	var method_name = "play_%s" % event_name
+	if audio_manager.has_method(method_name):
+		audio_manager.call(method_name)
 
 # Economy
 var starting_gold: int = 10
@@ -816,6 +825,7 @@ func start_battle() -> void:
 	print("Battle ", current_battle_id, " seed: ", current_battle_seed)
 	print("Battle payload created")
 	add_event_log("Battle started")
+	play_audio_event("start_battle")
 	
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
@@ -1058,6 +1068,7 @@ func trigger_game_over() -> void:
 			unit.stop_battle()
 
 	add_event_log("Game over")
+	play_audio_event("game_over")
 
 func trigger_victory() -> void:
 	victory = true
@@ -1074,6 +1085,7 @@ func trigger_victory() -> void:
 			unit.stop_battle()
 
 	add_event_log("VICTORY")
+	play_audio_event("victory")
 
 func reset_game() -> void:
 	print("RESETTING GAME FOR NEW RUN")
@@ -1243,6 +1255,7 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	update_bench_ui()
 	populate_shop()
 	clear_all_selection()
+	play_audio_event("buy")
 	print("Bought ", data["name"], " to bench for ", cost, " gold")
 
 func try_merge_bench_units() -> void:
@@ -1278,6 +1291,7 @@ func try_merge_bench_units() -> void:
 				bench_units.append({"unit_id": unit_id, "star_level": upgraded_star})
 				var data: Dictionary = unit_database.get_unit_data(unit_id)
 				add_event_log("Merged %s into %d-star" % [data.get("name", unit_id), upgraded_star])
+				play_audio_event("merge")
 				found_merge = true
 				merged_any = true
 				break
@@ -1321,6 +1335,7 @@ func try_merge_deployed_unit_with_bench() -> bool:
 
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		add_event_log("Merged deployed %s into %d-star" % [data.get("name", unit_id), upgraded_star])
+		play_audio_event("merge")
 		return true
 
 	return false
@@ -1354,6 +1369,7 @@ func _on_reroll_button_pressed() -> void:
 	update_gold_label()
 	roll_shop_offers()
 	populate_shop()
+	play_audio_event("reroll")
 	print("Rerolled shop for ", reroll_cost, " gold")
 
 func get_item_data(item_id: String) -> Dictionary:
@@ -1487,6 +1503,7 @@ func _on_sell_unit_button_pressed() -> void:
 		update_bench_ui()
 		populate_shop()
 		clear_all_selection()
+		play_audio_event("sell")
 		print("Sold bench ", bench_data["name"], " star: ", bench_star, " for ", bench_refund, " gold")
 		return
 	
@@ -1540,6 +1557,7 @@ func _on_sell_unit_button_pressed() -> void:
 	update_unit_cap_label()
 	update_item_ui()
 	populate_shop()
+	play_audio_event("sell")
 	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
 
 func get_star_refund_multiplier(star_level: int) -> int:
