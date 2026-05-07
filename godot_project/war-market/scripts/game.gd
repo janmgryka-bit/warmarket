@@ -146,17 +146,19 @@ func spawn_test_units() -> void:
 	spawn_player_roster()
 	spawn_enemy_wave(1)
 
-func add_player_roster_unit(unit_id: String, grid_pos: Vector2i) -> void:
+func add_player_roster_unit(unit_id: String, grid_pos: Vector2i, star_level: int = 1) -> void:
 	roster_id_counter += 1
-	player_roster.append({"roster_id": roster_id_counter, "unit_id": unit_id, "grid_pos": grid_pos})
-	print("Added to roster: ", unit_id, " at ", grid_pos, " id: ", roster_id_counter)
+	player_roster.append({"roster_id": roster_id_counter, "unit_id": unit_id, "grid_pos": grid_pos, "star_level": star_level})
+	print("Added to roster: ", unit_id, " at ", grid_pos, " id: ", roster_id_counter, " star: ", star_level)
 
 func spawn_player_roster() -> void:
 	for entry in player_roster:
-		var unit = spawn_unit_by_id(entry["unit_id"], 0, entry["grid_pos"])
+		var star_level = entry.get("star_level", 1)
+		var unit = spawn_unit_by_id(entry["unit_id"], 0, entry["grid_pos"], star_level)
 		if unit:
 			unit.set_meta("roster_id", entry["roster_id"])
-			print("Spawning roster unit: ", entry["unit_id"], " at ", entry["grid_pos"], " id: ", entry["roster_id"])
+			unit.set_meta("star_level", star_level)
+			print("Spawning roster unit: ", entry["unit_id"], " at ", entry["grid_pos"], " id: ", entry["roster_id"], " star: ", star_level)
 
 func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
@@ -187,7 +189,7 @@ func roll_shop_offers() -> void:
 		var random_index = randi_range(0, shop_unit_ids.size() - 1)
 		current_shop_offers.append(shop_unit_ids[random_index])
 
-func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> CharacterBody3D:
+func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_level: int = 1) -> CharacterBody3D:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	
 	if data.is_empty():
@@ -204,13 +206,28 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i) -> Char
 	unit.move_speed = data["move_speed"]
 	unit.attack_range = data["attack_range"]
 	
+	apply_star_level_to_unit(unit, star_level)
+	unit.current_hp = unit.max_hp
+	
 	units_container.add_child(unit)
 	unit.unit_clicked.connect(_on_unit_clicked)
 	place_unit_on_grid(unit, grid_pos)
+	unit.set_meta("star_level", star_level)
 	
-	print("Spawned unit: ", data["name"], " / faction: ", data["faction"])
+	print("Spawned unit: ", data["name"], " / faction: ", data["faction"], " / star: ", star_level)
 	
 	return unit
+
+func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
+	match star_level:
+		1:
+			return
+		2:
+			unit.max_hp = unit.max_hp * 1.8
+			unit.damage = unit.damage * 1.8
+			return
+		_:
+			return
 
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
@@ -310,13 +327,14 @@ func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 
 	var entry = bench_units[selected_bench_index]
 	var unit_id = entry.get("unit_id", "")
+	var star_level = entry.get("star_level", 1)
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	if data.is_empty():
 		print("Bench unit data not found for ", unit_id)
 		return false
 
-	add_player_roster_unit(unit_id, grid_pos)
-	var unit = spawn_unit_by_id(unit_id, 0, grid_pos)
+	add_player_roster_unit(unit_id, grid_pos, star_level)
+	var unit = spawn_unit_by_id(unit_id, 0, grid_pos, star_level)
 	if unit:
 		unit.set_meta("roster_id", roster_id_counter)
 	else:
@@ -329,7 +347,7 @@ func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 	update_bench_ui()
 	update_unit_cap_label()
 	clear_all_selection()
-	print("Deployed ", data.get("name", unit_id), " from bench at ", grid_pos)
+	print("Deployed ", data.get("name", unit_id), " from bench at ", grid_pos, " star: ", star_level)
 	return true
 
 func get_first_player_unit() -> CharacterBody3D:
@@ -595,13 +613,43 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 		return
 	
 	player_gold -= cost
-	bench_units.append({"unit_id": unit_id})
+	bench_units.append({"unit_id": unit_id, "star_level": 1})
 	sold_shop_offer_indices.append(offer_index)
 	update_gold_label()
+	try_merge_bench_units()
 	update_bench_ui()
 	populate_shop()
 	clear_all_selection()
 	print("Bought ", data["name"], " to bench for ", cost, " gold")
+
+func try_merge_bench_units() -> void:
+	while true:
+		var merge_sets: Dictionary = {}
+		for i in range(bench_units.size()):
+			var entry = bench_units[i]
+			var unit_id = entry.get("unit_id", "")
+			var star_level = entry.get("star_level", 1)
+			if star_level != 1:
+				continue
+			if not merge_sets.has(unit_id):
+				merge_sets[unit_id] = []
+			merge_sets[unit_id].append(i)
+
+		var found_merge = false
+		for unit_id in merge_sets.keys():
+			var indices = merge_sets[unit_id]
+			if indices.size() >= 3:
+				indices.sort()
+				for j in range(indices.size() - 1, -1, -1):
+					bench_units.remove_at(indices[j])
+				bench_units.append({"unit_id": unit_id, "star_level": 2})
+				var data: Dictionary = unit_database.get_unit_data(unit_id)
+				print("Merged 3x %s into 2-star" % data.get("name", unit_id))
+				found_merge = true
+				break
+
+		if not found_merge:
+			break
 
 func _on_reroll_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -627,12 +675,15 @@ func _on_sell_unit_button_pressed() -> void:
 	if selected_bench_index >= 0 and selected_bench_index < bench_units.size():
 		var entry = bench_units[selected_bench_index]
 		var bench_unit_id = entry.get("unit_id", "")
+		var bench_star = entry.get("star_level", 1)
 		var bench_data: Dictionary = unit_database.get_unit_data(bench_unit_id)
 		if bench_data.is_empty():
 			print("Bench unit data not found for ", bench_unit_id)
 			return
 		
 		var bench_refund = bench_data["base_price"]
+		if bench_star == 2:
+			bench_refund *= 3
 		player_gold += bench_refund
 		bench_units.remove_at(selected_bench_index)
 		selected_bench_index = -1
@@ -640,7 +691,7 @@ func _on_sell_unit_button_pressed() -> void:
 		update_bench_ui()
 		populate_shop()
 		clear_all_selection()
-		print("Sold bench ", bench_data["name"], " for ", bench_refund, " gold")
+		print("Sold bench ", bench_data["name"], " star: ", bench_star, " for ", bench_refund, " gold")
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -670,6 +721,7 @@ func _on_sell_unit_button_pressed() -> void:
 		return
 	
 	var deployed_unit_id = roster_entry["unit_id"]
+	var deployed_star = roster_entry.get("star_level", 1)
 	var deployed_data = unit_database.get_unit_data(deployed_unit_id)
 	
 	if deployed_data.is_empty():
@@ -677,6 +729,8 @@ func _on_sell_unit_button_pressed() -> void:
 		return
 	
 	var deployed_refund = deployed_data["base_price"]
+	if deployed_star == 2:
+		deployed_refund *= 3
 	
 	player_gold += deployed_refund
 	player_roster.remove_at(roster_index)
@@ -686,7 +740,7 @@ func _on_sell_unit_button_pressed() -> void:
 	update_gold_label()
 	update_unit_cap_label()
 	populate_shop()
-	print("Sold ", deployed_data["name"], " for ", deployed_refund, " gold")
+	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
 
 # UI
 func update_gold_label() -> void:
@@ -702,13 +756,24 @@ func update_bench_ui() -> void:
 
 	for i in range(bench_units.size()):
 		var entry = bench_units[i]
-		var unit_id = entry.get("unit_id", "")
-		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		var button = Button.new()
 		button.custom_minimum_size = Vector2(220, 65)
-		button.text = data.get("name", unit_id)
+		button.text = get_bench_unit_display_name(entry)
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
+
+func get_bench_unit_display_name(entry: Dictionary) -> String:
+	var unit_id = entry.get("unit_id", "")
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	var star_level = entry.get("star_level", 1)
+	var name = data.get("name", unit_id)
+	match star_level:
+		1:
+			return "%s ★" % name
+		2:
+			return "%s ★★" % name
+		_:
+			return name
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():

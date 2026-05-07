@@ -105,6 +105,21 @@ func test_bench_sell() -> void:
 	assert_eq(game.bench_units.size(), bench_before - 1, "Bench size should decrease after selling a bench unit")
 	assert_eq(game.player_gold, gold_before + price, "Gold should refund the bench unit price")
 
+func test_bench_merge_to_two_star() -> void:
+	var game = await load_game()
+	var unit_id = "roman_spearman"
+	for i in range(3):
+		game.bench_units.append({"unit_id": unit_id, "star_level": 1})
+	game.try_merge_bench_units()
+	assert_eq(game.bench_units.size(), 1, "Bench should merge three identical units into one entry")
+	assert_eq(game.bench_units[0].get("unit_id", ""), unit_id, "Merged unit should preserve unit id")
+	assert_eq(game.bench_units[0].get("star_level", 1), 2, "Merged unit should be 2-star")
+	var gold_before = game.player_gold
+	game.selected_bench_index = 0
+	game._on_sell_unit_button_pressed()
+	var base_price = game.unit_database.get_unit_data(unit_id)["base_price"]
+	assert_eq(game.player_gold, gold_before + base_price * 3, "Selling a 2-star bench unit should refund 3x base price")
+
 func test_bench_deploy() -> void:
 	var game = await load_game()
 	var offer_index = find_affordable_shop_offer(game)
