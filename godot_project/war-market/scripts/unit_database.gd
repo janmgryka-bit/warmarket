@@ -11,7 +11,8 @@ const UNITS := {
 		"damage": 12,
 		"attack_cooldown": 1.0,
 		"move_speed": 2.0,
-		"attack_range": 1.4
+		"attack_range": 1.4,
+		"damage_taken_multiplier": 0.95
 	},
 	
 	"roman_archer": {
@@ -20,11 +21,11 @@ const UNITS := {
 		"role": "Ranged",
 		"tier": 1,
 		"base_price": 4,
-		"max_hp": 80,
-		"damage": 9,
-		"attack_cooldown": 1.2,
-		"move_speed": 2.0,
-		"attack_range": 4.0
+		"max_hp": 70,
+		"damage": 11,
+		"attack_cooldown": 1.35,
+		"move_speed": 1.9,
+		"attack_range": 5.2
 	},
 	
 	"viking_berserker": {
@@ -33,9 +34,9 @@ const UNITS := {
 		"role": "Fighter",
 		"tier": 1,
 		"base_price": 5,
-		"max_hp": 110,
-		"damage": 18,
-		"attack_cooldown": 1.1,
+		"max_hp": 105,
+		"damage": 19,
+		"attack_cooldown": 1.0,
 		"move_speed": 2.3,
 		"attack_range": 1.4
 	},
@@ -46,11 +47,12 @@ const UNITS := {
 		"role": "Fighter",
 		"tier": 1,
 		"base_price": 3,
-		"max_hp": 100,
-		"damage": 14,
-		"attack_cooldown": 1.1,
-		"move_speed": 2.0,
-		"attack_range": 1.6
+		"max_hp": 150,
+		"damage": 11,
+		"attack_cooldown": 1.25,
+		"move_speed": 1.9,
+		"attack_range": 1.8,
+		"damage_taken_multiplier": 0.9
 	},
 	
 	"viking_axeman": {
@@ -59,10 +61,10 @@ const UNITS := {
 		"role": "Fighter",
 		"tier": 1,
 		"base_price": 3,
-		"max_hp": 95,
-		"damage": 16,
-		"attack_cooldown": 1.2,
-		"move_speed": 2.3,
+		"max_hp": 90,
+		"damage": 20,
+		"attack_cooldown": 0.95,
+		"move_speed": 2.35,
 		"attack_range": 1.3
 	},
 	
@@ -72,11 +74,11 @@ const UNITS := {
 		"role": "Ranged",
 		"tier": 1,
 		"base_price": 3,
-		"max_hp": 75,
-		"damage": 10,
-		"attack_cooldown": 1.0,
+		"max_hp": 70,
+		"damage": 11,
+		"attack_cooldown": 1.15,
 		"move_speed": 2.0,
-		"attack_range": 4.0
+		"attack_range": 4.8
 	},
 	
 	"roman_centurion": {
@@ -85,11 +87,12 @@ const UNITS := {
 		"role": "Tank",
 		"tier": 2,
 		"base_price": 6,
-		"max_hp": 220,
-		"damage": 22,
-		"attack_cooldown": 1.1,
+		"max_hp": 230,
+		"damage": 24,
+		"attack_cooldown": 1.15,
 		"move_speed": 2.0,
-		"attack_range": 1.5
+		"attack_range": 1.5,
+		"damage_taken_multiplier": 0.88
 	},
 	
 	"viking_raider": {
@@ -98,10 +101,10 @@ const UNITS := {
 		"role": "Fighter",
 		"tier": 2,
 		"base_price": 6,
-		"max_hp": 170,
-		"damage": 30,
-		"attack_cooldown": 1.0,
-		"move_speed": 2.3,
+		"max_hp": 165,
+		"damage": 34,
+		"attack_cooldown": 0.9,
+		"move_speed": 2.4,
 		"attack_range": 1.3
 	},
 	
@@ -111,11 +114,11 @@ const UNITS := {
 		"role": "Ranged",
 		"tier": 2,
 		"base_price": 6,
-		"max_hp": 120,
-		"damage": 22,
-		"attack_cooldown": 0.95,
+		"max_hp": 115,
+		"damage": 24,
+		"attack_cooldown": 1.05,
 		"move_speed": 2.5,
-		"attack_range": 4.5
+		"attack_range": 5.4
 	}
 }
 

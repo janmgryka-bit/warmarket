@@ -874,6 +874,7 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 	unit.attack_cooldown = data["attack_cooldown"]
 	unit.move_speed = data["move_speed"]
 	unit.attack_range = data["attack_range"]
+	unit.damage_taken_multiplier = data.get("damage_taken_multiplier", 1.0)
 	unit.set_meta("base_max_hp", unit.max_hp)
 	unit.set_meta("base_damage", unit.damage)
 	unit.set_meta("base_attack_cooldown", unit.attack_cooldown)
@@ -1056,6 +1057,7 @@ func get_unit_effective_stats_summary(unit: CharacterBody3D) -> Dictionary:
 		"damage": unit.damage,
 		"attack_range": unit.attack_range,
 		"attack_cooldown": unit.attack_cooldown,
+		"damage_taken_multiplier": unit.damage_taken_multiplier,
 		"faction": data.get("faction", ""),
 		"role": data.get("role", unit.role),
 		"tier": data.get("tier", 1),
@@ -1111,6 +1113,8 @@ func update_unit_details_panel() -> void:
 		"Range: %.1f" % selected_unit.attack_range,
 		"Cooldown: %.2fs" % selected_unit.attack_cooldown
 	]
+	if selected_unit.damage_taken_multiplier < 0.999:
+		lines.append("Damage Taken: %.0f%%" % (selected_unit.damage_taken_multiplier * 100.0))
 	if selected_unit.team_id == 0:
 		var item_text = "Item: None"
 		var details_roster_entry = get_roster_entry_for_unit(selected_unit)

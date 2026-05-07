@@ -11,6 +11,7 @@ var TESTS: Array[Dictionary] = [
 	{"name": "Items", "method": "test_items"},
 	{"name": "Buy XP", "method": "test_buy_xp"},
 	{"name": "Shop tier rolls", "method": "test_shop_tier_rolls"},
+	{"name": "Unit combat identity stats", "method": "test_unit_combat_identity_stats"},
 	{"name": "Faction bonuses", "method": "test_faction_bonuses"},
 	{"name": "Role bonuses", "method": "test_role_bonuses"},
 	{"name": "Unit details panel", "method": "test_unit_details_panel"},
@@ -350,6 +351,26 @@ func test_shop_tier_rolls() -> void:
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should fall back when the rolled tier pool is empty")
 	assert_valid_shop_offers(game)
 	game.shop_tier_odds[6] = original_level_6_odds
+
+func test_unit_combat_identity_stats() -> void:
+	var game = await load_game()
+	var spearman: Dictionary = game.unit_database.get_unit_data("roman_spearman")
+	var axeman: Dictionary = game.unit_database.get_unit_data("viking_axeman")
+	var archer: Dictionary = game.unit_database.get_unit_data("roman_archer")
+
+	assert_true(spearman["max_hp"] > axeman["max_hp"], "Spearman should have more HP than Axeman")
+	assert_true(spearman["max_hp"] > archer["max_hp"], "Spearman should have more HP than Archer")
+	assert_true(spearman.get("damage_taken_multiplier", 1.0) < 1.0, "Spearman should reduce incoming damage")
+	assert_true(axeman["damage"] > spearman["damage"], "Axeman should deal more damage than Spearman")
+	assert_true(axeman["attack_cooldown"] < spearman["attack_cooldown"], "Axeman should attack faster than Spearman")
+	assert_true(archer["attack_range"] > spearman["attack_range"] * 2.0, "Archer should have clear ranged reach")
+	assert_true(archer["max_hp"] < axeman["max_hp"], "Archer should be more fragile than melee damage units")
+
+	var spawned_spearman = game.spawn_unit_by_id("roman_spearman", 1, Vector2i(0, 1))
+	assert_true(spawned_spearman != null, "Spearman should spawn for identity mechanic check")
+	var hp_before: float = spawned_spearman.current_hp
+	spawned_spearman.take_damage(10.0)
+	assert_float_eq(spawned_spearman.current_hp, hp_before - 9.0, "Spearman damage reduction should apply in combat damage")
 
 func test_faction_bonuses() -> void:
 	var game = await setup_roster_for_test([

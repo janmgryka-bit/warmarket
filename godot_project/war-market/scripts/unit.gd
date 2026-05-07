@@ -14,6 +14,7 @@ var grid_position: Vector2i = Vector2i(-1, -1)
 @export var attack_range: float = 1.4
 @export var attack_cooldown: float = 1.0
 @export var move_speed: float = 2.0
+@export var damage_taken_multiplier: float = 1.0
 
 var current_hp: float
 var target: CharacterBody3D = null
@@ -204,10 +205,11 @@ func take_damage(amount: float) -> void:
 	if is_dead:
 		return
 	
-	current_hp -= amount
+	var final_amount := amount * damage_taken_multiplier
+	current_hp -= final_amount
 	current_hp = max(current_hp, 0.0)
 	update_health_bar()
-	show_damage_number(amount)
+	show_damage_number(final_amount)
 	print(unit_name, " HP: ", current_hp)
 	
 	if current_hp <= 0:
