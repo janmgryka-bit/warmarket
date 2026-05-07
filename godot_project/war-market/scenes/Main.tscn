@@ -329,26 +329,26 @@ mouse_filter = 2
 
 [node name="BottomArea" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 210)
-theme_override_constants/separation = 10
+custom_minimum_size = Vector2(0, 192)
+theme_override_constants/separation = 7
 mouse_filter = 2
 
 [node name="BenchPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=2100000001]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 92)
+custom_minimum_size = Vector2(0, 74)
 
 [node name="BenchMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 8.0
-offset_right = -10.0
-offset_bottom = -8.0
+offset_left = 8.0
+offset_top = 4.0
+offset_right = -8.0
+offset_bottom = -5.0
 
 [node name="BenchContent" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 3
 
 [node name="BenchLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent" unique_id=2100000002]
 layout_mode = 2
@@ -363,7 +363,7 @@ vertical_scroll_mode = 0
 [node name="BenchItems" type="HBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchScroll" unique_id=2100000003]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="ShopPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=1612883262]
 layout_mode = 2

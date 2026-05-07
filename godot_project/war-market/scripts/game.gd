@@ -144,7 +144,10 @@ func apply_ui_style() -> void:
 	for panel_path in panel_paths:
 		var panel := get_node_or_null(panel_path)
 		if panel is Panel:
-			style_panel(panel)
+			if panel.name == "BenchPanel":
+				style_bench_panel(panel)
+			else:
+				style_panel(panel)
 
 	style_labels_under($UI)
 	style_buttons_under($UI)
@@ -152,6 +155,16 @@ func apply_ui_style() -> void:
 
 func style_panel(panel: Panel) -> void:
 	panel.add_theme_stylebox_override("panel", create_ui_stylebox(ui_dark_stone_color, ui_brass_color, 2, 4))
+
+func style_bench_panel(panel: Panel) -> void:
+	var style := create_ui_stylebox(Color(0.13, 0.14, 0.12, 0.94), Color(0.48, 0.40, 0.25, 0.95), 2, 3)
+	style.border_width_top = 4
+	style.border_width_bottom = 2
+	style.content_margin_left = 10
+	style.content_margin_top = 4
+	style.content_margin_right = 10
+	style.content_margin_bottom = 5
+	panel.add_theme_stylebox_override("panel", style)
 
 func style_buttons_under(node: Node) -> void:
 	for child in node.get_children():
@@ -1851,7 +1864,7 @@ func update_bench_ui() -> void:
 	for i in range(bench_units.size()):
 		var entry = bench_units[i]
 		var button = Button.new()
-		button.custom_minimum_size = Vector2(180, 55)
+		button.custom_minimum_size = Vector2(160, 46)
 		button.text = get_bench_unit_display_name(entry)
 		var unit_id = entry.get("unit_id", "")
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
