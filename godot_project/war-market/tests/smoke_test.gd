@@ -600,22 +600,10 @@ func test_bench_deploy_via_board_click() -> void:
 	add_bench_unit(game, "roman_spearman")
 	assert_eq(game.bench_units.size(), 1, "Bench setup should add one unit")
 
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for board-click bench deploy")
-	var bench_before = game.bench_units.size()
-	var roster_before = game.player_roster.size()
-
 	game._on_bench_unit_pressed(0)
 	assert_eq(game.selected_bench_index, 0, "Bench unit should be selected before board click")
 	assert_true(game.board.highlighted_tile_positions.size() > 0, "Bench selection should highlight valid tiles")
-	game._on_board_tile_clicked(tile)
-
-	assert_eq(game.bench_units.size(), bench_before - 1, "Board click should remove deployed bench unit")
-	assert_eq(game.player_roster.size(), roster_before + 1, "Board click should add the unit to player roster")
-	assert_eq(game.selected_bench_index, -1, "Board click deploy should clear bench selection")
-	assert_eq(game.board.highlighted_tile_positions.size(), 0, "Board click deploy should clear tile highlights")
-	assert_true(has_player_unit_at_tile(tile), "Board click should spawn the bench unit on the clicked tile")
-	game.board.clear_tile_highlights()
+	assert_board_click_deploys_selected_bench_unit(game, "Board click")
 
 func test_arena_bench_slot_deploy() -> void:
 	var game = await load_game()
@@ -624,20 +612,10 @@ func test_arena_bench_slot_deploy() -> void:
 	assert_true(game.arena_bench_root != null, "Arena bench root should exist")
 	assert_eq(game.arena_bench_slot_nodes.size(), game.max_bench_units, "Arena bench should create one slot per bench capacity")
 
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for arena bench deploy")
-	var bench_before = game.bench_units.size()
-	var roster_before = game.player_roster.size()
-
 	game._on_bench_arena_slot_clicked(0)
 	assert_eq(game.selected_bench_index, 0, "Arena bench slot should select bench index 0")
 	assert_true(game.board.highlighted_tile_positions.size() > 0, "Arena bench selection should highlight valid tiles")
-	game._on_board_tile_clicked(tile)
-
-	assert_eq(game.bench_units.size(), bench_before - 1, "Arena bench deploy should remove deployed bench unit")
-	assert_eq(game.player_roster.size(), roster_before + 1, "Arena bench deploy should add the unit to player roster")
-	assert_eq(game.selected_bench_index, -1, "Arena bench deploy should clear bench selection")
-	assert_true(has_player_unit_at_tile(tile), "Arena bench deploy should spawn the bench unit on the clicked tile")
+	assert_board_click_deploys_selected_bench_unit(game, "Arena bench deploy")
 
 func test_invalid_bench_deploy() -> void:
 	var game = await load_game()
@@ -704,10 +682,7 @@ func test_player_loss_damage() -> void:
 	assert_eq(game.get_round_loss_damage(7), 5, "Round 7 loss damage should be 5")
 	assert_eq(game.get_round_loss_damage(9), 6, "Round 9 loss damage should be 6")
 
-	for unit in get_nodes_in_group("units"):
-		if unit.team_id == 1:
-			unit.queue_free()
-	await process_frame
+	await clear_enemy_units()
 
 	game.spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 	game.spawn_unit_by_id("viking_axeman", 1, Vector2i(6, 1))
@@ -852,18 +827,11 @@ func test_reset_game_new_run() -> void:
 
 func test_enemy_wave_spawning() -> void:
 	var game = await load_game()
-	
-	# Clear existing enemy units from initial setup
-	for unit in get_nodes_in_group("units"):
-		if unit.team_id == 1:
-			unit.queue_free()
-	await process_frame
-	
-	# Spawn round 5 enemies (which should have 5 units)
+	await clear_enemy_units()
+
 	game.spawn_enemy_wave(5)
 	await process_frame
-	
-	# Count enemy units
+
 	var enemy_count = 0
 	for unit in get_nodes_in_group("units"):
 		if unit.team_id == 1:
@@ -881,10 +849,7 @@ func test_opponent_army_snapshot() -> void:
 	assert_true(first_entry.has("star_level"), "Snapshot entries should include star_level")
 	assert_true(not first_entry.has("roster_id"), "Snapshot entries should omit roster_id")
 
-	for unit in get_nodes_in_group("units"):
-		if unit.team_id == 1:
-			unit.queue_free()
-	await process_frame
+	await clear_enemy_units()
 
 	game.opponent_army_snapshot = snapshot
 	game.use_snapshot_opponent = true
@@ -1045,6 +1010,12 @@ func run_battle_until_round_end(game, max_frames: int = 3000) -> void:
 		frames += 1
 	assert_true(game.round_ended, "Battle should end before max frame budget")
 
+func clear_enemy_units() -> void:
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == 1:
+			unit.queue_free()
+	await process_frame
+
 func find_affordable_shop_offer(game) -> int:
 	for i in range(game.current_shop_offers.size()):
 		if not (i in game.sold_shop_offer_indices):
@@ -1146,6 +1117,18 @@ func deploy_bench_unit_to_empty_tile(game, bench_index: int = 0) -> Dictionary:
 		"tile": tile,
 		"roster_id": roster_id
 	}
+
+func assert_board_click_deploys_selected_bench_unit(game, context: String) -> void:
+	var tile = find_empty_player_tile(game)
+	assert_true(tile != null, context + " needs an empty player tile")
+	var bench_before: int = game.bench_units.size()
+	var roster_before: int = game.player_roster.size()
+	game._on_board_tile_clicked(tile)
+	assert_eq(game.bench_units.size(), bench_before - 1, context + " should remove deployed bench unit")
+	assert_eq(game.player_roster.size(), roster_before + 1, context + " should add the unit to player roster")
+	assert_eq(game.selected_bench_index, -1, context + " should clear bench selection")
+	assert_eq(game.board.highlighted_tile_positions.size(), 0, context + " should clear tile highlights")
+	assert_true(has_player_unit_at_tile(tile), context + " should spawn the bench unit on the clicked tile")
 
 func assert_valid_shop_offers(game) -> void:
 	for unit_id in game.current_shop_offers:
