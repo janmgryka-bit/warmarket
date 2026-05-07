@@ -4,6 +4,7 @@ extends Node3D
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
 @onready var start_button: Button = $UI/HudContainer/StartBattleButton
+@onready var battle_speed_button: Button = $UI/HudContainer/BattleSpeedButton
 @onready var restart_button: Button = $UI/RestartRoundButton
 @onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
 @onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
@@ -30,6 +31,8 @@ var battle_started: bool = false
 var round_ended: bool = false
 var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
+var battle_speed_values: Array[float] = [1.0, 2.0, 4.0]
+var battle_speed_index: int = 0
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -146,6 +149,8 @@ func _ready() -> void:
 	
 	round_result_label.text = ""
 	restart_button.visible = false
+	apply_battle_speed()
+	update_battle_speed_ui()
 
 	update_gold_label()
 	update_player_health_label()
@@ -163,6 +168,26 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if battle_started and not round_ended:
 		check_round_end()
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+
+func apply_battle_speed() -> void:
+	Engine.time_scale = battle_speed_values[battle_speed_index]
+
+func update_battle_speed_ui() -> void:
+	battle_speed_button.text = "Speed: %dx" % int(battle_speed_values[battle_speed_index])
+
+func reset_battle_speed() -> void:
+	battle_speed_index = 0
+	apply_battle_speed()
+	update_battle_speed_ui()
+
+func _on_battle_speed_button_pressed() -> void:
+	battle_speed_index = (battle_speed_index + 1) % battle_speed_values.size()
+	apply_battle_speed()
+	update_battle_speed_ui()
+	print("Battle speed set to ", battle_speed_values[battle_speed_index], "x")
 
 # Spawning
 func spawn_test_units() -> void:
@@ -718,6 +743,7 @@ func restart_round() -> void:
 	round_ended = false
 	round_result_label.text = ""
 	restart_button.visible = false
+	reset_battle_speed()
 	clear_all_selection()
 	round_number += 1
 	player_gold += round_income
@@ -807,6 +833,7 @@ func reset_game() -> void:
 	player_health = starting_player_health
 	player_level = 1
 	player_xp = 0
+	reset_battle_speed()
 	update_max_player_units()
 	
 	# Clear rosters and bench

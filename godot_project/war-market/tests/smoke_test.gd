@@ -24,6 +24,7 @@ func run_test(test_name: String, test_function: Callable) -> void:
 func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
+	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
@@ -74,6 +75,35 @@ func test_initial_state() -> void:
 	assert_eq(game.player_level_label.text, "Level: 1 (0/2 XP)", "Player level label should show initial XP progress")
 	assert_true(game.synergy_label != null, "SynergyLabel should exist")
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
+
+func test_battle_speed_toggle() -> void:
+	var game = await load_game()
+	assert_eq(game.battle_speed_index, 0, "Battle speed should start at index 0")
+	assert_float_eq(Engine.time_scale, 1.0, "Initial battle speed should be 1x")
+	assert_eq(game.battle_speed_button.text, "Speed: 1x", "Initial battle speed button text should show 1x")
+
+	game._on_battle_speed_button_pressed()
+	assert_eq(game.battle_speed_index, 1, "First speed press should select 2x")
+	assert_float_eq(Engine.time_scale, 2.0, "First speed press should apply 2x")
+	assert_eq(game.battle_speed_button.text, "Speed: 2x", "Battle speed button should show 2x")
+
+	game._on_battle_speed_button_pressed()
+	assert_eq(game.battle_speed_index, 2, "Second speed press should select 4x")
+	assert_float_eq(Engine.time_scale, 4.0, "Second speed press should apply 4x")
+	assert_eq(game.battle_speed_button.text, "Speed: 4x", "Battle speed button should show 4x")
+
+	game._on_battle_speed_button_pressed()
+	assert_eq(game.battle_speed_index, 0, "Third speed press should wrap to 1x")
+	assert_float_eq(Engine.time_scale, 1.0, "Third speed press should apply 1x")
+	assert_eq(game.battle_speed_button.text, "Speed: 1x", "Battle speed button should show 1x after wrap")
+
+	game._on_battle_speed_button_pressed()
+	game._on_battle_speed_button_pressed()
+	assert_eq(game.battle_speed_index, 2, "Battle speed should be set to 4x before restart")
+	game.restart_round()
+	assert_eq(game.battle_speed_index, 0, "Restart round should reset battle speed index")
+	assert_float_eq(Engine.time_scale, 1.0, "Restart round should reset battle speed to 1x")
+	assert_true("1x" in game.battle_speed_button.text, "Restart round should show 1x speed")
 
 func test_buy_xp() -> void:
 	var game = await load_game()
