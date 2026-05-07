@@ -69,6 +69,9 @@ var reroll_cost: int = 2
 var win_bonus_gold: int = 2
 var draw_bonus_gold: int = 1
 var interest_cap: int = 5
+var win_streak: int = 0
+var loss_streak: int = 0
+var max_streak_bonus: int = 2
 var player_level: int = 1
 var player_xp: int = 0
 var xp_per_purchase: int = 4
@@ -878,6 +881,7 @@ func end_round(result_text: String) -> void:
 	last_battle_summary = create_battle_summary(result_text)
 	record_battle_summary(last_battle_summary)
 	print("Battle summary recorded")
+	update_streaks_for_result(result_text)
 
 	if result_text == "PLAYER WINS" and round_number >= max_rounds:
 		trigger_victory()
@@ -913,6 +917,25 @@ func _on_restart_round_button_pressed() -> void:
 func calculate_interest_gold() -> int:
 	return min(int(floor(float(player_gold) / 10.0)), interest_cap)
 
+func update_streaks_for_result(result_text: String) -> void:
+	if result_text == "PLAYER WINS":
+		win_streak += 1
+		loss_streak = 0
+	elif result_text == "ENEMY WINS":
+		loss_streak += 1
+		win_streak = 0
+	elif result_text == "DRAW":
+		win_streak = 0
+		loss_streak = 0
+
+func calculate_streak_bonus() -> int:
+	var current_streak = max(win_streak, loss_streak)
+	if current_streak < 2:
+		return 0
+	if current_streak < 4:
+		return 1
+	return max_streak_bonus
+
 func restart_round() -> void:
 	if game_over or victory:
 		print("Cannot restart round after run has ended")
@@ -934,9 +957,10 @@ func restart_round() -> void:
 		result_bonus = draw_bonus_gold
 	
 	var interest := calculate_interest_gold()
-	player_gold += round_income + result_bonus + interest
-	print("Round income: ", round_income, " + bonus: ", result_bonus, " + interest: ", interest)
-	add_event_log("Next round: +%dg income, +%dg bonus, +%dg interest" % [round_income, result_bonus, interest])
+	var streak_bonus := calculate_streak_bonus()
+	player_gold += round_income + result_bonus + interest + streak_bonus
+	print("Round income: ", round_income, " + bonus: ", result_bonus, " + interest: ", interest, " + streak: ", streak_bonus)
+	add_event_log("Next round: +%dg income, +%dg bonus, +%dg interest, +%dg streak" % [round_income, result_bonus, interest, streak_bonus])
 	
 	last_round_result = ""
 	
@@ -1032,6 +1056,8 @@ func reset_game() -> void:
 	last_round_result = ""
 	player_gold = starting_gold
 	player_health = starting_player_health
+	win_streak = 0
+	loss_streak = 0
 	player_level = 1
 	player_xp = 0
 	current_battle_id = 0

@@ -51,6 +51,8 @@ func _init() -> void:
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
 	await run_test("Opponent army snapshot", Callable(self, "test_opponent_army_snapshot"))
 	await run_test("Mirror army button", Callable(self, "test_mirror_army_button"))
+	await run_test("Interest gold", Callable(self, "test_interest_gold"))
+	await run_test("Streak bonuses", Callable(self, "test_streak_bonuses"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -77,6 +79,8 @@ func test_initial_state() -> void:
 	assert_eq(game.player_level, 1, "Player should start at level 1")
 	assert_eq(game.player_xp, 0, "Player should start with 0 XP")
 	assert_eq(game.max_player_units, 2, "Level 1 should allow 2 deployed units")
+	assert_eq(game.win_streak, 0, "Win streak should start at 0")
+	assert_eq(game.loss_streak, 0, "Loss streak should start at 0")
 	assert_eq(game.player_level_label.text, "Level: 1 (0/2 XP)", "Player level label should show initial XP progress")
 	assert_true(game.synergy_label != null, "SynergyLabel should exist")
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
@@ -702,15 +706,55 @@ func test_interest_gold() -> void:
 		"Next round should add income, win bonus, and pre-income interest"
 	)
 
+func test_streak_bonuses() -> void:
+	var game = await load_game()
+	assert_eq(game.win_streak, 0, "Initial win streak should be 0")
+	assert_eq(game.loss_streak, 0, "Initial loss streak should be 0")
+
+	game.update_streaks_for_result("PLAYER WINS")
+	game.update_streaks_for_result("PLAYER WINS")
+	assert_eq(game.win_streak, 2, "Two wins should create a 2-win streak")
+	assert_eq(game.loss_streak, 0, "Wins should reset loss streak")
+	assert_eq(game.calculate_streak_bonus(), 1, "A 2-win streak should grant 1 bonus gold")
+
+	game.update_streaks_for_result("PLAYER WINS")
+	game.update_streaks_for_result("PLAYER WINS")
+	assert_eq(game.calculate_streak_bonus(), game.max_streak_bonus, "A 4-win streak should grant max streak bonus")
+
+	game.update_streaks_for_result("ENEMY WINS")
+	assert_eq(game.win_streak, 0, "A loss should reset win streak")
+	assert_eq(game.loss_streak, 1, "A loss should start a loss streak")
+
+	game.update_streaks_for_result("DRAW")
+	assert_eq(game.win_streak, 0, "A draw should reset win streak")
+	assert_eq(game.loss_streak, 0, "A draw should reset loss streak")
+
+	var gold_before := 40
+	game.player_gold = gold_before
+	game.win_streak = 2
+	game.loss_streak = 0
+	game.last_round_result = "PLAYER WINS"
+	game.restart_round()
+	assert_eq(
+		game.player_gold,
+		gold_before + game.round_income + game.win_bonus_gold + 4 + 1,
+		"Next round should add income, win bonus, interest, and streak bonus"
+	)
+
+	game.reset_game()
+	assert_eq(game.win_streak, 0, "New run should reset win streak")
+	assert_eq(game.loss_streak, 0, "New run should reset loss streak")
+
 func test_next_round_bonus() -> void:
 	var game = await load_game()
 	var round_before = game.round_number
 	var gold_before = game.player_gold
 	var interest_before = game.calculate_interest_gold()
+	var streak_bonus_before = game.calculate_streak_bonus()
 	game.last_round_result = "PLAYER WINS"
 	game.restart_round()
 	assert_eq(game.round_number, round_before + 1, "Round number should increase on restart")
-	assert_eq(game.player_gold, gold_before + game.round_income + game.win_bonus_gold + interest_before, "Gold should include income, win bonus, and interest")
+	assert_eq(game.player_gold, gold_before + game.round_income + game.win_bonus_gold + interest_before + streak_bonus_before, "Gold should include income, win bonus, interest, and streak bonus")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop offers should refresh after next round")
 	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared after next round")
 
