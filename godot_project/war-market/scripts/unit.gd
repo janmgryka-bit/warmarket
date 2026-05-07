@@ -20,6 +20,7 @@ var attack_timer: float = 0.0
 var battle_active: bool = false
 var is_selected: bool = false
 var star_level: int = 1
+var is_dead: bool = false
 
 @onready var body_mesh: MeshInstance3D = $MeshInstance3D
 @onready var health_bar: Node3D = $HealthBar
@@ -43,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	if not battle_active:
 		return
 	
-	if current_hp <= 0:
+	if is_dead or current_hp <= 0:
 		return
 	
 	attack_timer -= delta
@@ -174,6 +175,9 @@ func create_attack_visual_material(color: Color) -> StandardMaterial3D:
 	return material
 
 func take_damage(amount: float) -> void:
+	if is_dead:
+		return
+	
 	current_hp -= amount
 	current_hp = max(current_hp, 0.0)
 	update_health_bar()
@@ -201,8 +205,46 @@ func show_damage_number(amount: float) -> void:
 	tween.tween_callback(label.queue_free)
 
 func die() -> void:
+	if is_dead:
+		return
+	
+	is_dead = true
+	battle_active = false
+	velocity = Vector3.ZERO
+	target = null
+	input_ray_pickable = false
 	print(unit_name, " died")
-	queue_free()
+	play_death_visual()
+
+func play_death_visual() -> void:
+	var flash := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.35
+	mesh.height = 0.7
+	flash.mesh = mesh
+	flash.material_override = create_attack_visual_material(Color(1.0, 0.35, 0.15, 0.85))
+	
+	var effect_parent: Node = get_tree().current_scene
+	if effect_parent == null:
+		effect_parent = get_parent()
+	if effect_parent != null:
+		effect_parent.add_child(flash)
+		flash.global_position = global_position + Vector3(0.0, 0.75, 0.0)
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(self, "scale", scale * 0.65, 0.35)
+	if body_mesh.material_override is StandardMaterial3D:
+		var material := body_mesh.material_override as StandardMaterial3D
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tween.tween_property(material, "albedo_color:a", 0.0, 0.35)
+	if effect_parent != null:
+		tween.tween_property(flash, "scale", Vector3(1.6, 1.6, 1.6), 0.35)
+		tween.tween_property(flash, "material_override:albedo_color:a", 0.0, 0.35)
+	tween.set_parallel(false)
+	if effect_parent != null:
+		tween.tween_callback(flash.queue_free)
+	tween.tween_callback(queue_free)
 
 func start_battle() -> void:
 	battle_active = true
