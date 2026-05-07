@@ -528,7 +528,10 @@ func test_bench_merge_to_three_star() -> void:
 	assert_eq(game.bench_units.size(), 1, "Bench should merge three identical 2-star units into one entry")
 	assert_eq(game.bench_units[0].get("unit_id", ""), unit_id, "3-star merged unit should preserve unit id")
 	assert_eq(game.bench_units[0].get("star_level", 1), 3, "Merged unit should be 3-star")
-	assert_eq(game.get_bench_unit_display_name(game.bench_units[0]), "Roman Spearman ★★★\nTier 1", "Bench UI text should show stars and tier")
+	var bench_text = game.get_bench_unit_display_name(game.bench_units[0])
+	assert_true("Roman Spearman" in bench_text, "Bench UI text should show unit name")
+	assert_true("★★★" in bench_text, "Bench UI text should show three stars")
+	assert_true("T1" in bench_text, "Bench UI text should show compact tier")
 	var gold_before = game.player_gold
 	game.selected_bench_index = 0
 	game._on_sell_unit_button_pressed()
