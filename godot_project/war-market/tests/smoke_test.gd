@@ -1,6 +1,51 @@
 extends SceneTree
 
 var current_test_name: String = ""
+var TESTS: Array[Dictionary] = [
+	{"name": "Initial state", "method": "test_initial_state"},
+	{"name": "Battle speed toggle", "method": "test_battle_speed_toggle"},
+	{"name": "Camera zoom toggle", "method": "test_camera_zoom_toggle"},
+	{"name": "Mute toggle", "method": "test_mute_toggle"},
+	{"name": "Event log", "method": "test_event_log"},
+	{"name": "Action feedback", "method": "test_action_feedback"},
+	{"name": "Items", "method": "test_items"},
+	{"name": "Buy XP", "method": "test_buy_xp"},
+	{"name": "Shop tier rolls", "method": "test_shop_tier_rolls"},
+	{"name": "Faction bonuses", "method": "test_faction_bonuses"},
+	{"name": "Role bonuses", "method": "test_role_bonuses"},
+	{"name": "Unit details panel", "method": "test_unit_details_panel"},
+	{"name": "Unit stats summary", "method": "test_unit_stats_summary"},
+	{"name": "Board tile highlights", "method": "test_board_tile_highlights"},
+	{"name": "Reroll", "method": "test_reroll"},
+	{"name": "Buy to bench", "method": "test_buy_to_bench"},
+	{"name": "Sold slot", "method": "test_sold_slot"},
+	{"name": "Bench sell", "method": "test_bench_sell"},
+	{"name": "Bench merge to 2-star", "method": "test_bench_merge_to_two_star"},
+	{"name": "Bench merge to 3-star", "method": "test_bench_merge_to_three_star"},
+	{"name": "2-star deployed unit", "method": "test_two_star_deployed_unit"},
+	{"name": "Deployed merge to 2-star", "method": "test_deployed_merge_to_two_star"},
+	{"name": "Deployed merge to 3-star", "method": "test_deployed_merge_to_three_star"},
+	{"name": "Bench deploy via board click", "method": "test_bench_deploy_via_board_click"},
+	{"name": "Arena bench slot deploy", "method": "test_arena_bench_slot_deploy"},
+	{"name": "Invalid bench deploy", "method": "test_invalid_bench_deploy"},
+	{"name": "Unit cap", "method": "test_unit_cap"},
+	{"name": "Deployed sell", "method": "test_deployed_sell"},
+	{"name": "Player loss damage", "method": "test_player_loss_damage"},
+	{"name": "Combat balance equal mirror", "method": "test_combat_balance_equal_mirror"},
+	{"name": "Combat balance stronger player", "method": "test_combat_balance_stronger_player"},
+	{"name": "Combat balance stronger opponent", "method": "test_combat_balance_stronger_opponent"},
+	{"name": "Game over after loss", "method": "test_game_over_after_loss"},
+	{"name": "Battle summary", "method": "test_battle_summary"},
+	{"name": "Battle summary export", "method": "test_battle_summary_export"},
+	{"name": "Victory after round 10", "method": "test_victory_after_round_ten"},
+	{"name": "Reset game new run", "method": "test_reset_game_new_run"},
+	{"name": "Enemy wave spawning", "method": "test_enemy_wave_spawning"},
+	{"name": "Opponent army snapshot", "method": "test_opponent_army_snapshot"},
+	{"name": "Mirror army button", "method": "test_mirror_army_button"},
+	{"name": "Interest gold", "method": "test_interest_gold"},
+	{"name": "Streak bonuses", "method": "test_streak_bonuses"},
+	{"name": "Next round bonus", "method": "test_next_round_bonus"},
+]
 
 func assert_true(condition: bool, message: String) -> void:
 	if not condition:
@@ -23,50 +68,10 @@ func run_test(test_name: String, test_function: Callable) -> void:
 
 func _init() -> void:
 	print("Starting smoke test...")
-	await run_test("Initial state", Callable(self, "test_initial_state"))
-	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
-	await run_test("Camera zoom toggle", Callable(self, "test_camera_zoom_toggle"))
-	await run_test("Mute toggle", Callable(self, "test_mute_toggle"))
-	await run_test("Event log", Callable(self, "test_event_log"))
-	await run_test("Action feedback", Callable(self, "test_action_feedback"))
-	await run_test("Items", Callable(self, "test_items"))
-	await run_test("Buy XP", Callable(self, "test_buy_xp"))
-	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
-	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
-	await run_test("Role bonuses", Callable(self, "test_role_bonuses"))
-	await run_test("Unit details panel", Callable(self, "test_unit_details_panel"))
-	await run_test("Unit stats summary", Callable(self, "test_unit_stats_summary"))
-	await run_test("Board tile highlights", Callable(self, "test_board_tile_highlights"))
-	await run_test("Reroll", Callable(self, "test_reroll"))
-	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
-	await run_test("Sold slot", Callable(self, "test_sold_slot"))
-	await run_test("Bench sell", Callable(self, "test_bench_sell"))
-	await run_test("Bench merge to 2-star", Callable(self, "test_bench_merge_to_two_star"))
-	await run_test("Bench merge to 3-star", Callable(self, "test_bench_merge_to_three_star"))
-	await run_test("2-star deployed unit", Callable(self, "test_two_star_deployed_unit"))
-	await run_test("Deployed merge to 2-star", Callable(self, "test_deployed_merge_to_two_star"))
-	await run_test("Deployed merge to 3-star", Callable(self, "test_deployed_merge_to_three_star"))
-	await run_test("Bench deploy", Callable(self, "test_bench_deploy"))
-	await run_test("Bench deploy via board click", Callable(self, "test_bench_deploy_via_board_click"))
-	await run_test("Arena bench slot deploy", Callable(self, "test_arena_bench_slot_deploy"))
-	await run_test("Invalid bench deploy", Callable(self, "test_invalid_bench_deploy"))
-	await run_test("Unit cap", Callable(self, "test_unit_cap"))
-	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
-	await run_test("Player loss damage", Callable(self, "test_player_loss_damage"))
-	await run_test("Combat balance equal mirror", Callable(self, "test_combat_balance_equal_mirror"))
-	await run_test("Combat balance stronger player", Callable(self, "test_combat_balance_stronger_player"))
-	await run_test("Combat balance stronger opponent", Callable(self, "test_combat_balance_stronger_opponent"))
-	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
-	await run_test("Battle summary", Callable(self, "test_battle_summary"))
-	await run_test("Battle summary export", Callable(self, "test_battle_summary_export"))
-	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
-	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
-	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
-	await run_test("Opponent army snapshot", Callable(self, "test_opponent_army_snapshot"))
-	await run_test("Mirror army button", Callable(self, "test_mirror_army_button"))
-	await run_test("Interest gold", Callable(self, "test_interest_gold"))
-	await run_test("Streak bonuses", Callable(self, "test_streak_bonuses"))
-	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
+	for test_entry in TESTS:
+		var test_name: String = test_entry["name"]
+		var method_name: String = test_entry["method"]
+		await run_test(test_name, Callable(self, method_name))
 
 	print("SMOKE TEST PASSED")
 	quit(0)
@@ -347,15 +352,10 @@ func test_shop_tier_rolls() -> void:
 	game.shop_tier_odds[6] = original_level_6_odds
 
 func test_faction_bonuses() -> void:
-	var game = await load_game()
-	game.clear_units()
-	await process_frame
-	game.player_roster.clear()
-	game.roster_id_counter = 0
-	game.add_player_roster_unit("roman_legionary", Vector2i(2, 6))
-	game.add_player_roster_unit("roman_spearman", Vector2i(3, 6))
-	game.spawn_player_roster()
-	game.refresh_player_unit_bonuses()
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "roman_spearman", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [])
 
 	var roman_unit = find_player_unit_by_roster_id(1)
 	assert_true(roman_unit != null, "Roman unit should be spawned for faction bonus test")
@@ -363,14 +363,10 @@ func test_faction_bonuses() -> void:
 	assert_float_eq(roman_unit.max_hp, roman_base_hp * 1.2, "Roman synergy should increase Roman max HP")
 	assert_true("Romans" in game.synergy_label.text, "SynergyLabel should mention Romans when Roman synergy is active")
 
-	game.clear_units()
-	await process_frame
-	game.player_roster.clear()
-	game.roster_id_counter = 0
-	game.add_player_roster_unit("viking_berserker", Vector2i(2, 6))
-	game.add_player_roster_unit("viking_axeman", Vector2i(3, 6))
-	game.spawn_player_roster()
-	game.refresh_player_unit_bonuses()
+	game = await setup_roster_for_test([
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [])
 
 	var viking_unit = find_player_unit_by_roster_id(1)
 	assert_true(viking_unit != null, "Viking unit should be spawned for faction bonus test")
@@ -378,15 +374,10 @@ func test_faction_bonuses() -> void:
 	assert_float_eq(viking_unit.damage, viking_base_damage * 1.2 * 1.15, "Viking damage should include faction and Fighter role synergy")
 
 func test_role_bonuses() -> void:
-	var game = await load_game()
-	game.clear_units()
-	await process_frame
-	game.player_roster.clear()
-	game.roster_id_counter = 0
-	game.add_player_roster_unit("roman_legionary", Vector2i(2, 6))
-	game.add_player_roster_unit("roman_centurion", Vector2i(3, 6))
-	game.spawn_player_roster()
-	game.refresh_player_unit_bonuses()
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "roman_centurion", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [])
 
 	var tank_unit = find_player_unit_by_roster_id(1)
 	assert_true(tank_unit != null, "Tank unit should be spawned for role bonus test")
@@ -394,14 +385,10 @@ func test_role_bonuses() -> void:
 	assert_float_eq(tank_unit.max_hp, tank_base_hp * 1.2 * 1.2, "Tank synergy should stack with Roman HP synergy")
 	assert_true("Tank" in game.synergy_label.text, "SynergyLabel should mention Tank role synergy")
 
-	game.clear_units()
-	await process_frame
-	game.player_roster.clear()
-	game.roster_id_counter = 0
-	game.add_player_roster_unit("roman_archer", Vector2i(2, 6))
-	game.add_player_roster_unit("slav_hunter", Vector2i(3, 6))
-	game.spawn_player_roster()
-	game.refresh_player_unit_bonuses()
+	game = await setup_roster_for_test([
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "slav_hunter", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [])
 
 	var ranged_unit = find_player_unit_by_roster_id(1)
 	assert_true(ranged_unit != null, "Ranged unit should be spawned for role bonus test")
@@ -442,8 +429,7 @@ func test_board_tile_highlights() -> void:
 		assert_true(tile.y >= 4, "Valid placement tiles should be on player side")
 		assert_true(not game.is_tile_occupied(tile), "Valid placement tiles should be empty")
 
-	game.bench_units.append({"unit_id": "roman_spearman", "star_level": 1})
-	game.update_bench_ui()
+	add_bench_unit(game, "roman_spearman")
 	game._on_bench_unit_pressed(game.bench_units.size() - 1)
 	assert_true(game.board.highlighted_tile_positions.size() == valid_tiles.size(), "Bench selection should highlight valid tiles")
 
@@ -508,8 +494,7 @@ func test_bench_sell() -> void:
 func test_bench_merge_to_two_star() -> void:
 	var game = await load_game()
 	var unit_id = "roman_spearman"
-	for i in range(3):
-		game.bench_units.append({"unit_id": unit_id, "star_level": 1})
+	add_bench_copies(game, unit_id, 1, 3)
 	game.try_merge_bench_units()
 	assert_eq(game.bench_units.size(), 1, "Bench should merge three identical units into one entry")
 	assert_eq(game.bench_units[0].get("unit_id", ""), unit_id, "Merged unit should preserve unit id")
@@ -523,8 +508,7 @@ func test_bench_merge_to_two_star() -> void:
 func test_bench_merge_to_three_star() -> void:
 	var game = await load_game()
 	var unit_id = "roman_spearman"
-	for i in range(3):
-		game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	add_bench_copies(game, unit_id, 2, 3)
 	game.try_merge_bench_units()
 	assert_eq(game.bench_units.size(), 1, "Bench should merge three identical 2-star units into one entry")
 	assert_eq(game.bench_units[0].get("unit_id", ""), unit_id, "3-star merged unit should preserve unit id")
@@ -543,22 +527,14 @@ func test_two_star_deployed_unit() -> void:
 	var game = await load_game()
 	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
-	for i in range(3):
-		game.bench_units.append({"unit_id": unit_id, "star_level": 1})
+	add_bench_copies(game, unit_id, 1, 3)
 	game.try_merge_bench_units()
 	assert_eq(game.bench_units.size(), 1, "Bench should have one merged unit")
 	assert_eq(game.bench_units[0].get("star_level", 1), 2, "Merged unit should be 2-star")
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for 2-star deploy")
-	game.selected_bench_index = 0
-	var deployed = game.try_deploy_bench_unit(tile)
-	assert_true(deployed, "Deploying a merged 2-star unit should succeed")
-	var roster_id = game.player_roster[game.player_roster.size() - 1]["roster_id"]
-	var deployed_unit = null
-	for unit in get_nodes_in_group("units"):
-		if unit.team_id == 0 and unit.has_meta("roster_id") and unit.get_meta("roster_id") == roster_id:
-			deployed_unit = unit
-			break
+	var deploy_result: Dictionary = deploy_bench_unit_to_empty_tile(game, 0)
+	assert_true(deploy_result["deployed"], "Deploying a merged 2-star unit should succeed")
+	var roster_id: int = deploy_result["roster_id"]
+	var deployed_unit = find_player_unit_by_roster_id(roster_id)
 	assert_true(deployed_unit != null, "The newly deployed 2-star unit should exist")
 	assert_eq(deployed_unit.star_level, 2, "Spawned deployed unit should carry 2-star level")
 
@@ -566,16 +542,12 @@ func test_deployed_merge_to_two_star() -> void:
 	var game = await load_game()
 	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
-	game.bench_units.append({"unit_id": unit_id, "star_level": 1})
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for deployed merge setup")
-	game.selected_bench_index = 0
-	var deployed = game.try_deploy_bench_unit(tile)
-	assert_true(deployed, "Deploying the first merge copy should succeed")
+	add_bench_unit(game, unit_id)
+	var deploy_result: Dictionary = deploy_bench_unit_to_empty_tile(game, 0)
+	assert_true(deploy_result["deployed"], "Deploying the first merge copy should succeed")
 
-	var roster_id = game.player_roster[game.player_roster.size() - 1]["roster_id"]
-	game.bench_units.append({"unit_id": unit_id, "star_level": 1})
-	game.bench_units.append({"unit_id": unit_id, "star_level": 1})
+	var roster_id: int = deploy_result["roster_id"]
+	add_bench_copies(game, unit_id, 1, 2)
 	game.try_merge_bench_units()
 
 	assert_eq(game.bench_units.size(), 0, "Deployed merge should remove the two matching bench copies")
@@ -596,16 +568,12 @@ func test_deployed_merge_to_three_star() -> void:
 	var game = await load_game()
 	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
-	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for deployed 3-star merge setup")
-	game.selected_bench_index = 0
-	var deployed = game.try_deploy_bench_unit(tile)
-	assert_true(deployed, "Deploying the 2-star merge base should succeed")
+	add_bench_unit(game, unit_id, 2)
+	var deploy_result: Dictionary = deploy_bench_unit_to_empty_tile(game, 0)
+	assert_true(deploy_result["deployed"], "Deploying the 2-star merge base should succeed")
 
-	var roster_id = game.player_roster[game.player_roster.size() - 1]["roster_id"]
-	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
-	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	var roster_id: int = deploy_result["roster_id"]
+	add_bench_copies(game, unit_id, 2, 2)
 	game.try_merge_bench_units()
 
 	assert_eq(game.bench_units.size(), 0, "3-star deployed merge should remove two matching 2-star bench copies")
@@ -626,29 +594,10 @@ func test_deployed_merge_to_three_star() -> void:
 	assert_eq(respawned_unit.star_level, 3, "Respawned roster unit should remain 3-star")
 	assert_eq(respawned_unit.star_label.text, "★★★", "Respawned StarLabel should show three stars")
 
-func test_bench_deploy() -> void:
-	var game = await load_game()
-	buy_xp_for_extra_unit_cap(game)
-	var offer_index = find_affordable_shop_offer(game)
-	assert_true(offer_index >= 0, "No affordable shop offer found for bench deploy setup")
-	game._on_shop_card_pressed(game.current_shop_offers[offer_index], offer_index)
-	var bench_before = game.bench_units.size()
-	var roster_before = game.player_roster.size()
-	var tile = find_empty_player_tile(game)
-	assert_true(tile != null, "No empty player tile available for bench deploy")
-	game._on_bench_unit_pressed(game.bench_units.size() - 1)
-	assert_eq(game.selected_bench_index, bench_before - 1, "Bench click should select the bench unit")
-	game._on_board_tile_clicked(tile)
-	assert_eq(game.bench_units.size(), bench_before - 1, "Bench size should decrease after deploy")
-	assert_eq(game.player_roster.size(), roster_before + 1, "Roster size should increase after deploy")
-	assert_true(has_player_unit_at_tile(tile), "A player unit should be spawned at the deployed tile")
-	assert_eq(game.selected_bench_index, -1, "Bench selection should clear after deploy")
-
 func test_bench_deploy_via_board_click() -> void:
 	var game = await load_game()
 	buy_xp_for_extra_unit_cap(game)
-	game.bench_units.append({"unit_id": "roman_spearman", "star_level": 1})
-	game.update_bench_ui()
+	add_bench_unit(game, "roman_spearman")
 	assert_eq(game.bench_units.size(), 1, "Bench setup should add one unit")
 
 	var tile = find_empty_player_tile(game)
@@ -671,8 +620,7 @@ func test_bench_deploy_via_board_click() -> void:
 func test_arena_bench_slot_deploy() -> void:
 	var game = await load_game()
 	buy_xp_for_extra_unit_cap(game)
-	game.bench_units.append({"unit_id": "roman_spearman", "star_level": 1})
-	game.update_bench_ui()
+	add_bench_unit(game, "roman_spearman")
 	assert_true(game.arena_bench_root != null, "Arena bench root should exist")
 	assert_eq(game.arena_bench_slot_nodes.size(), game.max_bench_units, "Arena bench should create one slot per bench capacity")
 
@@ -693,9 +641,7 @@ func test_arena_bench_slot_deploy() -> void:
 
 func test_invalid_bench_deploy() -> void:
 	var game = await load_game()
-	var offer_index = find_affordable_shop_offer(game)
-	assert_true(offer_index >= 0, "No affordable shop offer found for invalid bench deploy setup")
-	game._on_shop_card_pressed(game.current_shop_offers[offer_index], offer_index)
+	add_bench_unit(game, "roman_spearman")
 	var bench_before = game.bench_units.size()
 	var roster_before = game.player_roster.size()
 	var occupied_tile = find_occupied_player_tile(game)
@@ -708,23 +654,10 @@ func test_invalid_bench_deploy() -> void:
 
 func test_unit_cap() -> void:
 	var game = await load_game()
-	game.player_gold = 100
-	while game.player_roster.size() < min(game.max_player_units, game.current_shop_offers.size()):
-		var offer_index = find_affordable_shop_offer(game)
-		assert_true(offer_index >= 0, "No affordable shop offer available while filling unit cap")
-		game._on_shop_card_pressed(game.current_shop_offers[offer_index], offer_index)
-		var tile = find_empty_player_tile(game)
-		assert_true(tile != null, "No empty tile available while filling cap")
-		game.selected_bench_index = game.bench_units.size() - 1
-		var deployed = game.try_deploy_bench_unit(tile)
-		assert_true(deployed, "Bench deploy should succeed while filling to unit cap")
-
 	while game.player_roster.size() < game.max_player_units:
 		game.player_roster.append({"unit_id": "dummy", "roster_id": -1})
 
-	if game.bench_units.size() == 0:
-		assert_true(game.current_shop_offers.size() > 0, "No shop offers available to add a bench unit for cap overflow test")
-		game.bench_units.append({"unit_id": game.current_shop_offers[0]})
+	add_bench_unit(game, "roman_spearman")
 
 	var bench_before = game.bench_units.size()
 	var roster_before = game.player_roster.size()
@@ -1189,6 +1122,30 @@ func buy_xp_for_extra_unit_cap(game) -> void:
 		return
 	game._on_buy_xp_button_pressed()
 	assert_true(game.player_roster.size() < game.max_player_units, "Buying XP should create room for one more deployed unit")
+
+func add_bench_unit(game, unit_id: String, star_level: int = 1) -> void:
+	game.bench_units.append({"unit_id": unit_id, "star_level": star_level})
+	game.update_bench_ui()
+
+func add_bench_copies(game, unit_id: String, star_level: int, count: int) -> void:
+	for i in range(count):
+		game.bench_units.append({"unit_id": unit_id, "star_level": star_level})
+	game.update_bench_ui()
+
+func deploy_bench_unit_to_empty_tile(game, bench_index: int = 0) -> Dictionary:
+	var tile = find_empty_player_tile(game)
+	assert_true(tile != null, "No empty player tile available for bench deploy")
+	game.selected_bench_index = bench_index
+	var roster_before: int = game.player_roster.size()
+	var deployed: bool = game.try_deploy_bench_unit(tile)
+	var roster_id: int = -1
+	if deployed and game.player_roster.size() > roster_before:
+		roster_id = game.player_roster[game.player_roster.size() - 1]["roster_id"]
+	return {
+		"deployed": deployed,
+		"tile": tile,
+		"roster_id": roster_id
+	}
 
 func assert_valid_shop_offers(game) -> void:
 	for unit_id in game.current_shop_offers:
