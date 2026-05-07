@@ -6,6 +6,8 @@ extends Node3D
 @onready var start_button: Button = $UI/HudContainer/StartBattleButton
 @onready var restart_button: Button = $UI/RestartRoundButton
 @onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
+@onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
+@onready var unit_details_label: Label = $UI/UnitDetailsPanel/UnitDetailsLabel
 @onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/HudContainer/GoldLabel
 @onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
@@ -37,6 +39,7 @@ func clear_unit_selection() -> void:
 	if selected_unit != null and is_instance_valid(selected_unit):
 		selected_unit.set_selected(false)
 	selected_unit = null
+	update_unit_details_panel()
 
 func clear_bench_selection() -> void:
 	selected_bench_index = -1
@@ -430,6 +433,64 @@ func refresh_player_unit_bonuses() -> void:
 	if not active_role_bonuses.is_empty():
 		print("Active role bonuses: ", active_role_bonuses.keys())
 	update_synergy_label()
+	update_unit_details_panel()
+
+func get_roster_entry_for_unit(unit: CharacterBody3D):
+	if unit == null or not is_instance_valid(unit):
+		return null
+	if not unit.has_meta("roster_id"):
+		return null
+
+	var roster_id = unit.get_meta("roster_id")
+	for entry in player_roster:
+		if entry.get("roster_id", -1) == roster_id:
+			return entry
+	return null
+
+func get_unit_id_for_unit(unit: CharacterBody3D) -> String:
+	var roster_entry = get_roster_entry_for_unit(unit)
+	if roster_entry != null:
+		return roster_entry.get("unit_id", unit.name)
+	return unit.name
+
+func update_unit_details_panel() -> void:
+	if selected_unit == null or not is_instance_valid(selected_unit):
+		unit_details_panel.visible = false
+		return
+
+	var unit_id = get_unit_id_for_unit(selected_unit)
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	if data.is_empty():
+		unit_details_panel.visible = false
+		return
+
+	var star_level = selected_unit.get("star_level")
+	if selected_unit.has_meta("star_level"):
+		star_level = selected_unit.get_meta("star_level")
+
+	var sell_value = 0
+	if selected_unit.team_id == 0:
+		var roster_entry = get_roster_entry_for_unit(selected_unit)
+		var roster_star = star_level
+		if roster_entry != null:
+			roster_star = roster_entry.get("star_level", star_level)
+		sell_value = data["base_price"] * get_star_refund_multiplier(roster_star)
+
+	var lines: Array[String] = [
+		data.get("name", selected_unit.unit_name),
+		"%s / %s" % [data.get("faction", ""), data.get("role", "")],
+		"Tier: %d" % data.get("tier", 1),
+		"Stars: %d" % star_level,
+		"HP: %.0f / %.0f" % [selected_unit.current_hp, selected_unit.max_hp],
+		"Damage: %.1f" % selected_unit.damage,
+		"Range: %.1f" % selected_unit.attack_range,
+		"Cooldown: %.2fs" % selected_unit.attack_cooldown
+	]
+	if selected_unit.team_id == 0:
+		lines.append("Sell: %dg" % sell_value)
+
+	unit_details_label.text = "\n".join(lines)
+	unit_details_panel.visible = true
 
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
@@ -457,6 +518,7 @@ func _on_unit_clicked(unit: CharacterBody3D) -> void:
 func select_unit(unit: CharacterBody3D) -> void:
 	selected_unit = unit
 	selected_unit.set_selected(true)
+	update_unit_details_panel()
 	print("SELECTED UNIT: ", selected_unit.unit_name)
 
 func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:

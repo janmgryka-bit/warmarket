@@ -28,6 +28,7 @@ func _init() -> void:
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
 	await run_test("Role bonuses", Callable(self, "test_role_bonuses"))
+	await run_test("Unit details panel", Callable(self, "test_unit_details_panel"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -203,6 +204,17 @@ func test_role_bonuses() -> void:
 	var ranged_base_range = game.unit_database.get_unit_data("roman_archer")["attack_range"]
 	assert_float_eq(ranged_unit.attack_range, ranged_base_range * 1.1, "Ranged synergy should increase attack range")
 	assert_true("Ranged" in game.synergy_label.text, "SynergyLabel should mention Ranged role synergy")
+
+func test_unit_details_panel() -> void:
+	var game = await load_game()
+	var player_unit = find_deployed_player_unit()
+	assert_true(player_unit != null, "No deployed player unit available for details panel test")
+	game.select_unit(player_unit)
+	game.update_unit_details_panel()
+	assert_true(game.unit_details_panel.visible, "Unit details panel should show for selected deployed unit")
+	assert_true(player_unit.unit_name in game.unit_details_label.text, "Unit details should include selected unit name")
+	game.clear_unit_selection()
+	assert_true(not game.unit_details_panel.visible, "Unit details panel should hide after clearing selection")
 
 func test_reroll() -> void:
 	var game = await load_game()
