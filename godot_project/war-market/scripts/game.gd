@@ -97,7 +97,8 @@ var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
 
-# Enemy wave definitions by round
+# PvE wave generator definitions by round.
+# These temporary PvE waves currently provide the opponent army for each battle.
 var enemy_wave_definitions: Dictionary = {
 	1: [
 		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)}
@@ -218,7 +219,7 @@ func spawn_test_units() -> void:
 	add_player_roster_unit("roman_legionary", Vector2i(2, 6))
 	add_player_roster_unit("roman_archer", Vector2i(4, 7))
 	spawn_player_roster()
-	spawn_enemy_wave(1)
+	spawn_opponent_army(1)
 
 func add_player_roster_unit(unit_id: String, grid_pos: Vector2i, star_level: int = 1) -> void:
 	roster_id_counter += 1
@@ -238,9 +239,14 @@ func spawn_player_roster() -> void:
 func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 
+func spawn_opponent_army(round_num: int) -> void:
+	# Opponent army = enemy team units for the current battle.
+	# For now, the PvE wave generator is the temporary source of that army.
+	spawn_enemy_wave(round_num)
+
 func spawn_enemy_wave(round_num: int) -> void:
-	# Get wave definition for this round
-	# Use exact definition if it exists, otherwise use the highest available
+	# Temporary PvE wave generator used as the current opponent army source.
+	# Use exact definition if it exists, otherwise use the highest available.
 	var wave_def: Array = []
 	
 	if round_num in enemy_wave_definitions:
@@ -251,7 +257,7 @@ func spawn_enemy_wave(round_num: int) -> void:
 		if max_defined_round in enemy_wave_definitions:
 			wave_def = enemy_wave_definitions[max_defined_round]
 	
-	# Spawn all units in the wave definition
+	# Spawn all enemy team units in the wave definition.
 	for entry in wave_def:
 		var unit_id = entry.get("unit_id", "")
 		var grid_pos = entry.get("grid_pos", Vector2i(0, 0))
@@ -794,7 +800,7 @@ func restart_round() -> void:
 	roll_shop_offers()
 	populate_shop()
 	spawn_player_roster()
-	spawn_enemy_wave(round_number)
+	spawn_opponent_army(round_number)
 
 func update_player_roster_position(unit: CharacterBody3D, new_grid_pos: Vector2i) -> void:
 	if unit.team_id != 0:
