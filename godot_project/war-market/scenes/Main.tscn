@@ -63,6 +63,10 @@ text = "Level: 1 (0/2 XP)"
 layout_mode = 2
 text = "Buy XP (4g)"
 
+[node name="UseSelfAsOpponentButton" type="Button" parent="UI/HudContainer"]
+layout_mode = 2
+text = "Mirror Army"
+
 [node name="PlayerHealthLabel" type="Label" parent="UI/HudContainer" unique_id=1612883266]
 layout_mode = 2
 text = "HP: 20"
@@ -163,4 +167,5 @@ separation = 10
 [connection signal="pressed" from="UI/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/RerollButton" to="." method="_on_reroll_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/BuyXPButton" to="." method="_on_buy_xp_button_pressed"]
+[connection signal="pressed" from="UI/HudContainer/UseSelfAsOpponentButton" to="." method="_on_use_self_as_opponent_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/SellUnitButton" to="." method="_on_sell_unit_button_pressed"]

@@ -49,6 +49,7 @@ func _init() -> void:
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
 	await run_test("Opponent army snapshot", Callable(self, "test_opponent_army_snapshot"))
+	await run_test("Mirror army button", Callable(self, "test_mirror_army_button"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -625,6 +626,19 @@ func test_opponent_army_snapshot() -> void:
 	assert_eq(opponent_count, snapshot.size(), "Snapshot opponent should spawn one enemy per snapshot entry")
 	assert_true(found_mirrored_first, "Snapshot opponent should mirror player grid positions")
 
+func test_mirror_army_button() -> void:
+	var game = await load_game()
+	game._on_use_self_as_opponent_button_pressed()
+	await process_frame
+
+	assert_true(game.use_snapshot_opponent, "Mirror Army should enable snapshot opponent mode")
+	assert_true(not game.opponent_army_snapshot.is_empty(), "Mirror Army should store an opponent snapshot")
+	assert_eq(count_team_units(1), game.opponent_army_snapshot.size(), "Mirror Army should spawn snapshot opponent units")
+
+	game.reset_game()
+	assert_true(not game.use_snapshot_opponent, "New run should disable snapshot opponent mode")
+	assert_true(game.opponent_army_snapshot.is_empty(), "New run should clear opponent army snapshot")
+
 func test_next_round_bonus() -> void:
 	var game = await load_game()
 	var round_before = game.round_number
@@ -666,6 +680,13 @@ func has_player_unit_at_tile(tile: Vector2i) -> bool:
 		if unit.team_id == 0 and unit.grid_position == tile:
 			return true
 	return false
+
+func count_team_units(team_id: int) -> int:
+	var count = 0
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == team_id:
+			count += 1
+	return count
 
 func find_deployed_player_unit():
 	for unit in get_nodes_in_group("units"):

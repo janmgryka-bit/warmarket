@@ -16,6 +16,7 @@ extends Node3D
 @onready var round_label: Label = $UI/HudContainer/RoundLabel
 @onready var reroll_button: Button = $UI/HudContainer/RerollButton
 @onready var buy_xp_button: Button = $UI/HudContainer/BuyXPButton
+@onready var use_self_as_opponent_button: Button = $UI/HudContainer/UseSelfAsOpponentButton
 @onready var sell_unit_button: Button = $UI/HudContainer/SellUnitButton
 @onready var unit_cap_label: Label = $UI/HudContainer/UnitCapLabel
 @onready var synergy_label: Label = $UI/HudContainer/SynergyLabel
@@ -269,6 +270,12 @@ func spawn_opponent_army_from_snapshot(snapshot: Array[Dictionary]) -> void:
 		var grid_pos = mirror_grid_pos_for_opponent(entry.get("grid_pos", Vector2i.ZERO))
 		var star_level = entry.get("star_level", 1)
 		spawn_unit_by_id(unit_id, 1, grid_pos, star_level)
+
+func clear_opponent_units() -> void:
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if is_instance_valid(unit) and unit.team_id == 1:
+			unit.queue_free()
 
 func spawn_enemy_wave(round_num: int) -> void:
 	# Temporary PvE wave generator used as the current opponent army source.
@@ -916,6 +923,8 @@ func reset_game() -> void:
 	reset_battle_speed()
 	update_max_player_units()
 	event_log.clear()
+	use_snapshot_opponent = false
+	opponent_army_snapshot.clear()
 	
 	# Clear rosters and bench
 	player_roster.clear()
@@ -1157,6 +1166,22 @@ func _on_reroll_button_pressed() -> void:
 	roll_shop_offers()
 	populate_shop()
 	print("Rerolled shop for ", reroll_cost, " gold")
+
+func _on_use_self_as_opponent_button_pressed() -> void:
+	if not is_preparation_phase():
+		print("Cannot mirror army outside preparation phase")
+		return
+
+	var snapshot = create_player_army_snapshot()
+	if snapshot.is_empty():
+		add_event_log("No player army to mirror")
+		return
+
+	opponent_army_snapshot = snapshot
+	use_snapshot_opponent = true
+	clear_opponent_units()
+	spawn_opponent_army(round_number)
+	add_event_log("Using mirrored army as opponent")
 
 func _on_sell_unit_button_pressed() -> void:
 	if not is_preparation_phase():
