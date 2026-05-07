@@ -4,8 +4,10 @@ extends Node3D
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
 @onready var audio_manager: Node = $AudioManager
+@onready var camera: Camera3D = $Camera3D
 @onready var start_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/StartBattleButton
 @onready var battle_speed_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/BattleSpeedButton
+@onready var camera_zoom_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/CameraZoomButton
 @onready var mute_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/MuteButton
 @onready var restart_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/RestartRoundButton
 @onready var round_result_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/RoundResultLabel
@@ -45,6 +47,10 @@ var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
 var battle_speed_values: Array[float] = [1.0, 2.0, 4.0]
 var battle_speed_index: int = 0
+var camera_zoom_levels: Array[float] = [0.8, 1.0, 1.2]
+var camera_zoom_index: int = 1
+var default_camera_position: Vector3 = Vector3.ZERO
+var camera_focus_position: Vector3 = Vector3.ZERO
 var event_log: Array[String] = []
 var max_event_log_entries: int = 8
 var last_battle_summary: Dictionary = {}
@@ -219,6 +225,9 @@ func _ready() -> void:
 	apply_battle_speed()
 	update_battle_speed_ui()
 	update_mute_button_text()
+	setup_camera_defaults()
+	apply_camera_zoom()
+	update_camera_zoom_button()
 	clear_action_feedback()
 	add_event_log("New run started")
 
@@ -277,6 +286,48 @@ func _on_battle_speed_button_pressed() -> void:
 	apply_battle_speed()
 	update_battle_speed_ui()
 	print("Battle speed set to ", battle_speed_values[battle_speed_index], "x")
+
+func setup_camera_defaults() -> void:
+	if camera == null:
+		return
+	default_camera_position = camera.global_position
+	camera_focus_position = Vector3.ZERO
+	focus_camera_on_board()
+
+func focus_camera_on_board() -> void:
+	if camera == null:
+		return
+	camera.look_at(camera_focus_position, Vector3.UP)
+
+func apply_camera_zoom() -> void:
+	if camera == null:
+		return
+	var zoom := camera_zoom_levels[camera_zoom_index]
+	var default_offset := default_camera_position - camera_focus_position
+	if default_offset == Vector3.ZERO:
+		default_offset = camera.global_position - camera_focus_position
+	camera.global_position = camera_focus_position + default_offset / zoom
+	focus_camera_on_board()
+
+func update_camera_zoom_button() -> void:
+	if camera_zoom_button == null:
+		return
+	var zoom := camera_zoom_levels[camera_zoom_index]
+	var zoom_text := str(zoom)
+	if is_equal_approx(zoom, float(int(zoom))):
+		zoom_text = str(int(zoom))
+	camera_zoom_button.text = "Zoom: %sx" % zoom_text
+
+func reset_camera_zoom() -> void:
+	camera_zoom_index = 1
+	apply_camera_zoom()
+	update_camera_zoom_button()
+
+func _on_camera_zoom_button_pressed() -> void:
+	camera_zoom_index = (camera_zoom_index + 1) % camera_zoom_levels.size()
+	apply_camera_zoom()
+	update_camera_zoom_button()
+	print("Camera zoom set to ", camera_zoom_levels[camera_zoom_index], "x")
 
 # Spawning
 func spawn_test_units() -> void:
@@ -1126,6 +1177,7 @@ func reset_game() -> void:
 	current_battle_seed = 0
 	current_battle_payload.clear()
 	reset_battle_speed()
+	reset_camera_zoom()
 	update_max_player_units()
 	event_log.clear()
 	last_battle_summary.clear()

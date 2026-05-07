@@ -25,6 +25,7 @@ func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
+	await run_test("Camera zoom toggle", Callable(self, "test_camera_zoom_toggle"))
 	await run_test("Mute toggle", Callable(self, "test_mute_toggle"))
 	await run_test("Event log", Callable(self, "test_event_log"))
 	await run_test("Action feedback", Callable(self, "test_action_feedback"))
@@ -101,6 +102,8 @@ func test_initial_state() -> void:
 	assert_true(game.mute_button != null, "MuteButton should exist")
 	assert_eq(game.mute_button.text, "Sound: On", "MuteButton should start with sound on")
 	assert_eq(game.audio_manager.call("is_muted"), false, "AudioManager should start unmuted")
+	assert_eq(game.camera_zoom_index, 1, "Camera zoom should start at index 1")
+	assert_eq(game.camera_zoom_button.text, "Zoom: 1x", "Camera zoom button should show 1x")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -130,6 +133,22 @@ func test_battle_speed_toggle() -> void:
 	assert_eq(game.battle_speed_index, 0, "Restart round should reset battle speed index")
 	assert_float_eq(Engine.time_scale, 1.0, "Restart round should reset battle speed to 1x")
 	assert_true("1x" in game.battle_speed_button.text, "Restart round should show 1x speed")
+
+func test_camera_zoom_toggle() -> void:
+	var game = await load_game()
+	assert_eq(game.camera_zoom_index, 1, "Camera zoom should start at index 1")
+	assert_eq(game.camera_zoom_button.text, "Zoom: 1x", "Camera zoom button should start at 1x")
+
+	var default_position = game.camera.global_position
+	game._on_camera_zoom_button_pressed()
+	assert_eq(game.camera_zoom_index, 2, "First zoom press should select the closer zoom")
+	assert_true(game.camera.global_position.distance_to(Vector3.ZERO) < default_position.distance_to(Vector3.ZERO), "Zooming in should move camera closer to the board")
+	assert_eq(game.camera_zoom_button.text, "Zoom: 1.2x", "Camera zoom button should show 1.2x")
+
+	game.reset_game()
+	assert_eq(game.camera_zoom_index, 1, "Reset game should restore camera zoom index")
+	assert_eq(game.camera_zoom_button.text, "Zoom: 1x", "Reset game should restore camera zoom text")
+	assert_true(game.camera.global_position.distance_to(default_position) < 0.01, "Reset game should restore default camera position")
 
 func test_mute_toggle() -> void:
 	var game = await load_game()

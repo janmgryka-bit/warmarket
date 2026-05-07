@@ -72,6 +72,10 @@ text = "Next Round"
 layout_mode = 2
 text = "Speed: 1x"
 
+[node name="CameraZoomButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+text = "Zoom: 1x"
+
 [node name="MuteButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar"]
 layout_mode = 2
 text = "Sound: On"
@@ -312,6 +316,7 @@ text = "Mirror Army"
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/BattleSpeedButton" to="." method="_on_battle_speed_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/CameraZoomButton" to="." method="_on_camera_zoom_button_pressed"]
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/MuteButton" to="." method="_on_mute_button_pressed"]
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/RerollButton" to="." method="_on_reroll_button_pressed"]
 [connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/BuyXPButton" to="." method="_on_buy_xp_button_pressed"]
