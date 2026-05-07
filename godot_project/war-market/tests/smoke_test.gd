@@ -527,10 +527,16 @@ func test_game_over_after_loss() -> void:
 
 func test_battle_summary() -> void:
 	var game = await load_game()
+	var battle_id_before = game.current_battle_id
+	game.start_battle()
+	assert_eq(game.current_battle_id, battle_id_before + 1, "Starting battle should increment battle id")
+	assert_true(game.current_battle_seed != 0, "Starting battle should generate a battle seed")
 	game.end_round("PLAYER WINS")
 	var summary = game.last_battle_summary
 	assert_true(not summary.is_empty(), "Battle summary should be recorded after round end")
 	assert_eq(summary["result"], "PLAYER WINS", "Battle summary should record result")
+	assert_eq(summary["battle_id"], game.current_battle_id, "Battle summary should record battle id")
+	assert_eq(summary["battle_seed"], game.current_battle_seed, "Battle summary should record battle seed")
 	assert_true(summary.has("player_army_snapshot"), "Battle summary should include player army snapshot")
 	assert_true(summary.has("opponent_source"), "Battle summary should include opponent source")
 	assert_true(typeof(summary["surviving_units"]) == TYPE_ARRAY, "Battle summary surviving units should be an array")
