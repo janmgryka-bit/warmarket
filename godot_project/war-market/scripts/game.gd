@@ -3,17 +3,18 @@ extends Node3D
 # References
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
-@onready var start_button: Button = $UI/StartBattleButton
+@onready var start_button: Button = $UI/HudContainer/StartBattleButton
 @onready var restart_button: Button = $UI/RestartRoundButton
-@onready var round_result_label: Label = $UI/RoundResultLabel
-@onready var shop_items: HBoxContainer = $UI/ShopPanel/ShopItems
-@onready var gold_label: Label = $UI/GoldLabel
-@onready var round_label: Label = $UI/RoundLabel
-@onready var reroll_button: Button = $UI/RerollButton
-@onready var sell_unit_button: Button = $UI/SellUnitButton
-@onready var unit_cap_label: Label = $UI/UnitCapLabel
-@onready var bench_label: Label = $UI/BenchPanel/BenchLabel
-@onready var bench_items: HBoxContainer = $UI/BenchPanel/BenchItems
+@onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
+@onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
+@onready var gold_label: Label = $UI/HudContainer/GoldLabel
+@onready var round_label: Label = $UI/HudContainer/RoundLabel
+@onready var reroll_button: Button = $UI/HudContainer/RerollButton
+@onready var sell_unit_button: Button = $UI/HudContainer/SellUnitButton
+@onready var unit_cap_label: Label = $UI/HudContainer/UnitCapLabel
+@onready var player_health_label: Label = $UI/HudContainer/PlayerHealthLabel
+@onready var bench_label: Label = $UI/BottomContainer/BenchPanel/BenchLabel
+@onready var bench_items: HBoxContainer = $UI/BottomContainer/BenchPanel/BenchItems
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -50,6 +51,10 @@ var win_bonus_gold: int = 2
 var draw_bonus_gold: int = 1
 var max_player_units: int = 5
 var player_gold: int = starting_gold
+var starting_player_health: int = 20
+var player_health: int = starting_player_health
+var loss_damage: int = 4
+var game_over: bool = false
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
@@ -89,8 +94,9 @@ func _ready() -> void:
 	
 	round_result_label.text = ""
 	restart_button.visible = false
-	
+
 	update_gold_label()
+	update_player_health_label()
 	spawn_test_units()
 	roll_shop_offers()
 	populate_shop()
@@ -300,6 +306,9 @@ func get_first_player_unit() -> CharacterBody3D:
 # Battle
 func _on_start_battle_button_pressed() -> void:
 	print("BUTTON CLICKED")
+	if game_over:
+		print("Cannot start battle after game over")
+		return
 	start_battle()
 
 func start_battle() -> void:
@@ -320,7 +329,7 @@ func start_battle() -> void:
 		unit.start_battle()
 
 func is_preparation_phase() -> bool:
-	return not battle_started and not round_ended
+	return not battle_started and not round_ended and not game_over
 
 func check_round_end() -> void:
 	var player_alive := false
@@ -358,7 +367,14 @@ func end_round(result_text: String) -> void:
 	last_round_result = result_text
 	round_result_label.text = result_text
 	restart_button.visible = true
-	
+
+	if result_text == "ENEMY WINS":
+		player_health = max(player_health - loss_damage, 0)
+		update_player_health_label()
+		print("PLAYER TAKES ", loss_damage, " DAMAGE. HP: ", player_health)
+		if player_health <= 0:
+			trigger_game_over()
+
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
 		if is_instance_valid(unit):
@@ -369,6 +385,9 @@ func _on_restart_round_button_pressed() -> void:
 	restart_round()
 
 func restart_round() -> void:
+	if game_over:
+		print("Cannot restart round after game over")
+		return
 	clear_units()
 	
 	battle_started = false
@@ -416,6 +435,24 @@ func clear_units() -> void:
 	for child in units_container.get_children():
 		child.queue_free()
 
+func update_player_health_label() -> void:
+	player_health_label.text = "HP: %d" % player_health
+
+func trigger_game_over() -> void:
+	game_over = true
+	battle_started = false
+	round_ended = true
+	round_result_label.text = "GAME OVER"
+	restart_button.visible = true
+	clear_all_selection()
+
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if is_instance_valid(unit):
+			unit.stop_battle()
+
+	print("GAME OVER")
+
 # Shop
 func populate_shop() -> void:
 	clear_shop()
@@ -428,7 +465,7 @@ func populate_shop() -> void:
 			continue
 		
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(220, 90)
+		card.custom_minimum_size = Vector2(220, 65)
 		
 		if i in sold_shop_offer_indices:
 			card.text = "SOLD"
@@ -462,10 +499,13 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 		return
 	
 	var cost = data["base_price"]
+	if offer_index in sold_shop_offer_indices:
+		print("Shop slot ", offer_index, " is already sold")
+		return
 	if player_gold < cost:
 		print("Cannot afford ", data["name"], ". Need ", cost, " gold, have ", player_gold)
 		return
-	
+
 	if bench_units.size() >= max_bench_units:
 		print("Bench is full")
 		return
@@ -581,7 +621,7 @@ func update_bench_ui() -> void:
 		var unit_id = entry.get("unit_id", "")
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		var button = Button.new()
-		button.custom_minimum_size = Vector2(220, 90)
+		button.custom_minimum_size = Vector2(220, 65)
 		button.text = data.get("name", unit_id)
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
