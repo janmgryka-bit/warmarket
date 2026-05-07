@@ -18,6 +18,7 @@ var TESTS: Array[Dictionary] = [
 	{"name": "Unit stats summary", "method": "test_unit_stats_summary"},
 	{"name": "Board tile highlights", "method": "test_board_tile_highlights"},
 	{"name": "Reroll", "method": "test_reroll"},
+	{"name": "Dynamic market prices", "method": "test_dynamic_market_prices"},
 	{"name": "Buy to bench", "method": "test_buy_to_bench"},
 	{"name": "Sold slot", "method": "test_sold_slot"},
 	{"name": "Bench sell", "method": "test_bench_sell"},
@@ -471,6 +472,40 @@ func test_reroll() -> void:
 	game._on_reroll_button_pressed()
 	assert_eq(game.player_gold, gold_before - game.reroll_cost, "Reroll should subtract reroll cost")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Reroll should still show the configured number of offers")
+
+func test_dynamic_market_prices() -> void:
+	var game = await load_game()
+	var unit_id = "roman_spearman"
+	var base_price = game.get_unit_base_price(unit_id)
+	assert_eq(game.get_unit_market_delta(unit_id), 0, "Market delta should start at zero")
+	assert_eq(game.get_unit_market_price(unit_id), base_price, "Market price should start at base price")
+
+	game.current_shop_offers = [unit_id]
+	game.sold_shop_offer_indices.clear()
+	game.player_gold = 50
+	game.populate_shop()
+	assert_true("%dg" % base_price in game.shop_items.get_child(0).text, "Shop card should show current market price")
+	var gold_before_buy = game.player_gold
+	game._on_shop_card_pressed(unit_id, 0)
+	assert_eq(game.player_gold, gold_before_buy - base_price, "Buying should charge current market price")
+	assert_eq(game.get_unit_market_delta(unit_id), 1, "Buying should increase unit market delta")
+	assert_eq(game.get_unit_market_price(unit_id), base_price + 1, "Future market price should increase after buying")
+
+	var gold_after_buy = game.player_gold
+	game.selected_bench_index = 0
+	game._on_sell_unit_button_pressed()
+	assert_eq(game.player_gold, gold_after_buy + base_price, "Selling should refund base price, not inflated market price")
+	assert_true(game.player_gold <= gold_before_buy, "Buying then immediately selling should not create profit")
+	assert_eq(game.get_unit_market_delta(unit_id), 0, "Selling should reduce unit market delta")
+
+	game.adjust_market_delta(unit_id, 99)
+	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_max, "Positive market delta should clamp")
+	game.decay_market_prices()
+	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_max - 1, "Positive market delta should decay toward zero")
+	game.adjust_market_delta(unit_id, -99)
+	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_min, "Negative market delta should clamp")
+	game.decay_market_prices()
+	assert_eq(game.get_unit_market_delta(unit_id), 0, "Negative market delta should decay toward zero")
 
 func test_buy_to_bench() -> void:
 	var game = await load_game()
@@ -1046,7 +1081,7 @@ func find_affordable_shop_offer(game) -> int:
 	return -1
 
 func get_offer_price(game, offer_index: int) -> int:
-	return game.unit_database.get_unit_data(game.current_shop_offers[offer_index])["base_price"]
+	return game.get_unit_market_price(game.current_shop_offers[offer_index])
 
 func find_empty_player_tile(game):
 	for y in range(4, 8):

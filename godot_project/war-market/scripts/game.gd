@@ -550,6 +550,9 @@ var shop_tier_odds := {
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
+var market_deltas: Dictionary = {}
+var market_delta_min: int = -1
+var market_delta_max: int = 3
 
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
@@ -1103,6 +1106,8 @@ func update_unit_details_panel() -> void:
 			roster_star = roster_entry.get("star_level", star_level)
 		sell_value = data["base_price"] * get_star_refund_multiplier(roster_star)
 
+	var market_price = get_unit_market_price(unit_id)
+	var market_trend = get_market_trend_text(unit_id)
 	var lines: Array[String] = [
 		data.get("name", selected_unit.unit_name),
 		"%s / %s" % [data.get("faction", ""), data.get("role", "")],
@@ -1111,7 +1116,8 @@ func update_unit_details_panel() -> void:
 		"HP: %.0f / %.0f" % [selected_unit.current_hp, selected_unit.max_hp],
 		"Damage: %.1f" % selected_unit.damage,
 		"Range: %.1f" % selected_unit.attack_range,
-		"Cooldown: %.2fs" % selected_unit.attack_cooldown
+		"Cooldown: %.2fs" % selected_unit.attack_cooldown,
+		"Market: %dg (%s)" % [market_price, market_trend]
 	]
 	if selected_unit.damage_taken_multiplier < 0.999:
 		lines.append("Damage Taken: %.0f%%" % (selected_unit.damage_taken_multiplier * 100.0))
@@ -1530,6 +1536,7 @@ func restart_round() -> void:
 	reset_battle_speed()
 	clear_all_selection()
 	round_number += 1
+	decay_market_prices()
 	
 	var result_bonus := 0
 	if last_round_result == "PLAYER WINS":
@@ -1647,6 +1654,7 @@ func reset_game() -> void:
 	current_battle_id = 0
 	current_battle_seed = 0
 	current_battle_payload.clear()
+	market_deltas.clear()
 	reset_battle_speed()
 	reset_camera_zoom()
 	update_max_player_units()
@@ -1710,8 +1718,9 @@ func populate_shop() -> void:
 			card.disabled = true
 			style_sold_card_button(card)
 		else:
-			var can_afford = player_gold >= data["base_price"]
-			card.text = get_shop_card_text(data)
+			var current_price = get_unit_market_price(unit_id)
+			var can_afford = player_gold >= current_price
+			card.text = get_shop_card_text(unit_id, data)
 			card.disabled = not can_afford
 			style_unit_card_button(card, data.get("faction", ""), not can_afford)
 			card.pressed.connect(_on_shop_card_pressed.bind(unit_id, i))
@@ -1727,22 +1736,64 @@ func get_shop_card_size() -> Vector2:
 		return Vector2(138, 56)
 	return Vector2(164, 70)
 
-func get_shop_card_text(data: Dictionary) -> String:
+func get_shop_card_text(unit_id: String, data: Dictionary) -> String:
+	var current_price = get_unit_market_price(unit_id)
+	var trend_text = get_market_trend_text(unit_id)
 	if is_compact_layout():
-		return "%s\n%s %s T%d  %dg" % [
+		return "%s\n%s %s T%d  %dg %s" % [
 			data["name"],
 			data["faction"],
 			data["role"],
 			data.get("tier", 1),
-			data["base_price"]
+			current_price,
+			trend_text
 		]
-	return "%s\n%s  %s  T%d\n%dg Recruit" % [
+	return "%s\n%s  %s  T%d\n%dg Recruit  %s" % [
 		data["name"],
 		data["faction"],
 		data["role"],
 		data.get("tier", 1),
-		data["base_price"]
+		current_price,
+		trend_text
 	]
+
+func get_unit_base_price(unit_id: String) -> int:
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	if data.is_empty():
+		return 0
+	return int(data.get("base_price", 0))
+
+func get_unit_market_delta(unit_id: String) -> int:
+	return int(market_deltas.get(unit_id, 0))
+
+func get_unit_market_price(unit_id: String) -> int:
+	return max(1, get_unit_base_price(unit_id) + get_unit_market_delta(unit_id))
+
+func adjust_market_delta(unit_id: String, amount: int) -> void:
+	if unit_id == "":
+		return
+	var next_delta = clamp(get_unit_market_delta(unit_id) + amount, market_delta_min, market_delta_max)
+	if next_delta == 0:
+		market_deltas.erase(unit_id)
+	else:
+		market_deltas[unit_id] = next_delta
+
+func decay_market_prices() -> void:
+	var unit_ids := market_deltas.keys()
+	for unit_id in unit_ids:
+		var delta = get_unit_market_delta(unit_id)
+		if delta > 0:
+			adjust_market_delta(unit_id, -1)
+		elif delta < 0:
+			adjust_market_delta(unit_id, 1)
+
+func get_market_trend_text(unit_id: String) -> String:
+	var delta = get_unit_market_delta(unit_id)
+	if delta > 0:
+		return "+%dg" % delta
+	if delta < 0:
+		return "%dg" % delta
+	return "base"
 
 func _on_buy_xp_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -1792,7 +1843,7 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	if data.is_empty():
 		return
 	
-	var cost = data["base_price"]
+	var cost = get_unit_market_price(unit_id)
 	if offer_index in sold_shop_offer_indices:
 		show_action_feedback("Already sold")
 		print("Shop slot ", offer_index, " is already sold")
@@ -1810,6 +1861,7 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	player_gold -= cost
 	bench_units.append({"unit_id": unit_id, "star_level": 1})
 	sold_shop_offer_indices.append(offer_index)
+	adjust_market_delta(unit_id, 1)
 	update_gold_label()
 	try_merge_bench_units()
 	update_bench_ui()
@@ -2056,8 +2108,9 @@ func _on_sell_unit_button_pressed() -> void:
 			print("Bench unit data not found for ", bench_unit_id)
 			return
 		
-		var bench_refund = bench_data["base_price"] * get_star_refund_multiplier(bench_star)
+		var bench_refund = get_unit_base_price(bench_unit_id) * get_star_refund_multiplier(bench_star)
 		player_gold += bench_refund
+		adjust_market_delta(bench_unit_id, -1)
 		bench_units.remove_at(selected_bench_index)
 		selected_bench_index = -1
 		update_gold_label()
@@ -2104,11 +2157,12 @@ func _on_sell_unit_button_pressed() -> void:
 		print("Unit data not found for unit_id ", deployed_unit_id)
 		return
 	
-	var deployed_refund = deployed_data["base_price"] * get_star_refund_multiplier(deployed_star)
+	var deployed_refund = get_unit_base_price(deployed_unit_id) * get_star_refund_multiplier(deployed_star)
 	for item_id in roster_entry.get("item_ids", []):
 		item_inventory.append(item_id)
 	
 	player_gold += deployed_refund
+	adjust_market_delta(deployed_unit_id, -1)
 	player_roster.remove_at(roster_index)
 	selected_unit.queue_free()
 	clear_all_selection()
