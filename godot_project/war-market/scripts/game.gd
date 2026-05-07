@@ -382,7 +382,10 @@ func end_round(result_text: String) -> void:
 
 func _on_restart_round_button_pressed() -> void:
 	print("RESTART CLICKED")
-	restart_round()
+	if game_over:
+		reset_game()
+	else:
+		restart_round()
 
 func restart_round() -> void:
 	if game_over:
@@ -444,6 +447,7 @@ func trigger_game_over() -> void:
 	round_ended = true
 	round_result_label.text = "GAME OVER"
 	restart_button.visible = true
+	restart_button.text = "New Run"
 	clear_all_selection()
 
 	var units := get_tree().get_nodes_in_group("units")
@@ -452,6 +456,48 @@ func trigger_game_over() -> void:
 			unit.stop_battle()
 
 	print("GAME OVER")
+
+func reset_game() -> void:
+	print("RESETTING GAME FOR NEW RUN")
+	clear_units()
+	
+	# Reset all game state variables
+	battle_started = false
+	round_ended = false
+	game_over = false
+	round_number = 1
+	last_round_result = ""
+	player_gold = starting_gold
+	player_health = starting_player_health
+	
+	# Clear rosters and bench
+	player_roster.clear()
+	bench_units.clear()
+	roster_id_counter = 0
+	selected_bench_index = -1
+	
+	# Clear selection state
+	clear_all_selection()
+	
+	# Reset UI
+	round_result_label.text = ""
+	restart_button.visible = false
+	restart_button.text = "Next Round"
+	
+	# Update UI labels
+	update_gold_label()
+	update_player_health_label()
+	update_unit_cap_label()
+	update_bench_ui()
+	round_label.text = "Round: %d" % round_number
+	
+	# Roll fresh shop and populate
+	roll_shop_offers()
+	populate_shop()
+	
+	# Spawn starting units
+	spawn_test_units()
+	print("NEW RUN STARTED")
 
 # Shop
 func populate_shop() -> void:

@@ -33,6 +33,7 @@ func _init() -> void:
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
+	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -190,6 +191,35 @@ func test_game_over_after_loss() -> void:
 	assert_eq(game.player_health, 0, "Player health should be clamped to zero after loss")
 	assert_true(game.game_over, "Game over should be true after health reaches zero")
 	assert_eq(game.round_result_label.text, "GAME OVER", "Round result label should show GAME OVER")
+
+func test_reset_game_new_run() -> void:
+	var game = await load_game()
+	# Force game over
+	game.player_health = game.loss_damage
+	game.end_round("ENEMY WINS")
+	assert_true(game.game_over, "Game should be over before reset")
+	
+	# Store initial values for comparison
+	var initial_gold = game.starting_gold
+	var initial_health = game.starting_player_health
+	var initial_round = 1
+	var initial_bench_size = 0
+	
+	# Call reset_game via the restart button (which should detect game_over state)
+	game._on_restart_round_button_pressed()
+	await process_frame
+	await process_frame
+	
+	# Verify game state is reset
+	assert_true(not game.game_over, "Game over should be false after reset")
+	assert_eq(game.player_health, initial_health, "Player health should be restored to starting health")
+	assert_eq(game.player_gold, initial_gold, "Player gold should be reset to starting gold")
+	assert_eq(game.round_number, initial_round, "Round number should be reset to 1")
+	assert_eq(game.bench_units.size(), initial_bench_size, "Bench should be empty after reset")
+	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Fresh shop offers should be rolled")
+	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared")
+	assert_true(game.player_roster.size() > 0, "Starting units should be spawned")
+	assert_true(not game.restart_button.visible, "Restart button should be hidden after reset")
 
 func test_next_round_bonus() -> void:
 	var game = await load_game()
