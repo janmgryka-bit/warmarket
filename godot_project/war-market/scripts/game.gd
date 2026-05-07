@@ -63,6 +63,15 @@ var export_battle_summaries: bool = false
 var battle_summary_export_dir: String = "user://battle_summaries"
 var action_feedback_timer: Timer = null
 
+# UI Style
+var ui_dark_stone_color: Color = Color(0.10, 0.11, 0.10, 0.92)
+var ui_stone_color: Color = Color(0.18, 0.18, 0.16, 0.96)
+var ui_stone_hover_color: Color = Color(0.24, 0.22, 0.18, 0.98)
+var ui_brass_color: Color = Color(0.76, 0.55, 0.25)
+var ui_gold_color: Color = Color(0.95, 0.78, 0.36)
+var ui_light_text_color: Color = Color(0.92, 0.88, 0.76)
+var ui_muted_text_color: Color = Color(0.58, 0.54, 0.45)
+
 # Selection Helpers
 func clear_shop_selection() -> void:
 	selected_shop_unit_id = ""
@@ -122,6 +131,79 @@ func get_blocked_action_feedback() -> String:
 	if round_ended:
 		return "Round ended"
 	return "Not available"
+
+func apply_ui_style() -> void:
+	var panel_paths := [
+		"UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel",
+		"UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel",
+		"UI/MainLayout/RootColumns/RightSidebar/UnitDetailsPanel",
+		"UI/MainLayout/RootColumns/RightSidebar/EventLogPanel",
+		"UI/MainLayout/RootColumns/RightSidebar/ItemPanel",
+		"UI/MainLayout/RootColumns/RightSidebar/DebugPanel"
+	]
+	for panel_path in panel_paths:
+		var panel := get_node_or_null(panel_path)
+		if panel is Panel:
+			style_panel(panel)
+
+	style_labels_under($UI)
+	style_buttons_under($UI)
+	style_action_feedback_label()
+
+func style_panel(panel: Panel) -> void:
+	panel.add_theme_stylebox_override("panel", create_ui_stylebox(ui_dark_stone_color, ui_brass_color, 2, 4))
+
+func style_buttons_under(node: Node) -> void:
+	for child in node.get_children():
+		if child is Button:
+			style_button(child)
+		style_buttons_under(child)
+
+func style_labels_under(node: Node) -> void:
+	for child in node.get_children():
+		if child is Label:
+			style_label(child)
+		style_labels_under(child)
+
+func style_label(label: Label) -> void:
+	label.add_theme_color_override("font_color", ui_light_text_color)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.65))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+
+func style_action_feedback_label() -> void:
+	action_feedback_label.add_theme_color_override("font_color", ui_gold_color)
+	action_feedback_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	action_feedback_label.add_theme_constant_override("shadow_offset_x", 1)
+	action_feedback_label.add_theme_constant_override("shadow_offset_y", 1)
+
+func style_button(button: Button) -> void:
+	button.add_theme_stylebox_override("normal", create_ui_stylebox(ui_stone_color, ui_brass_color, 1, 4))
+	button.add_theme_stylebox_override("hover", create_ui_stylebox(ui_stone_hover_color, ui_gold_color, 2, 4))
+	button.add_theme_stylebox_override("pressed", create_ui_stylebox(Color(0.12, 0.10, 0.08, 0.98), ui_gold_color, 2, 4))
+	button.add_theme_stylebox_override("disabled", create_ui_stylebox(Color(0.08, 0.08, 0.08, 0.72), Color(0.25, 0.22, 0.16, 0.85), 1, 4))
+	button.add_theme_color_override("font_color", ui_light_text_color)
+	button.add_theme_color_override("font_hover_color", ui_gold_color)
+	button.add_theme_color_override("font_pressed_color", ui_gold_color)
+	button.add_theme_color_override("font_disabled_color", ui_muted_text_color)
+
+func create_ui_stylebox(bg_color: Color, border_color: Color, border_width: int, corner_radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.border_width_left = border_width
+	style.border_width_top = border_width
+	style.border_width_right = border_width
+	style.border_width_bottom = border_width
+	style.corner_radius_top_left = corner_radius
+	style.corner_radius_top_right = corner_radius
+	style.corner_radius_bottom_right = corner_radius
+	style.corner_radius_bottom_left = corner_radius
+	style.content_margin_left = 8
+	style.content_margin_top = 6
+	style.content_margin_right = 8
+	style.content_margin_bottom = 6
+	return style
 
 func play_audio_event(event_name: String) -> void:
 	if audio_manager == null:
@@ -221,6 +303,7 @@ func _ready() -> void:
 	
 	board.tile_clicked.connect(_on_board_tile_clicked)
 	setup_action_feedback_timer()
+	apply_ui_style()
 	
 	round_result_label.text = ""
 	restart_button.visible = false
@@ -1305,6 +1388,7 @@ func populate_shop() -> void:
 		
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(180, 80)
+		style_button(card)
 		
 		if i in sold_shop_offer_indices:
 			card.text = "SOLD"
@@ -1542,6 +1626,7 @@ func update_item_ui() -> void:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(95, 36)
 		button.text = get_item_name(item_id)
+		style_button(button)
 		button.pressed.connect(_on_item_pressed.bind(i))
 		item_items.add_child(button)
 
@@ -1734,6 +1819,7 @@ func update_bench_ui() -> void:
 		var button = Button.new()
 		button.custom_minimum_size = Vector2(180, 55)
 		button.text = get_bench_unit_display_name(entry)
+		style_button(button)
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
 
