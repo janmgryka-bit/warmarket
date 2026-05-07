@@ -15,6 +15,8 @@ var stone_dark_color: Color = Color(0.36, 0.37, 0.36)
 var player_side_tint: Color = Color(0.18, 0.34, 0.52)
 var enemy_side_tint: Color = Color(0.48, 0.24, 0.22)
 var slab_edge_color: Color = Color(0.20, 0.21, 0.20)
+var player_side_marker_color: Color = Color(0.22, 0.42, 0.62)
+var enemy_side_marker_color: Color = Color(0.58, 0.24, 0.20)
 
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
@@ -41,6 +43,10 @@ func create_board() -> void:
 			var material := mesh_instance.material_override as StandardMaterial3D
 			mesh_instance.material_override = material
 			tile_body.add_child(mesh_instance)
+
+			var side_marker := create_side_marker(grid_pos)
+			tile_body.add_child(side_marker)
+
 			tile_bodies[grid_pos] = tile_body
 			tile_original_colors[grid_pos] = material.albedo_color
 			
@@ -75,6 +81,18 @@ func create_tile_edge() -> MeshInstance3D:
 	edge_instance.position = Vector3(0.0, -0.04, 0.0)
 	edge_instance.material_override = create_stone_material(slab_edge_color)
 	return edge_instance
+
+func create_side_marker(grid_pos: Vector2i) -> MeshInstance3D:
+	var marker := MeshInstance3D.new()
+	marker.name = "SideMarker"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(tile_size * 0.54, 0.025, 0.045)
+	marker.mesh = mesh
+	var marker_z := tile_size * 0.34 if grid_pos.y >= height / 2 else -tile_size * 0.34
+	marker.position = Vector3(0.0, 0.145, marker_z)
+	var marker_color := player_side_marker_color if grid_pos.y >= height / 2 else enemy_side_marker_color
+	marker.material_override = create_stone_material(marker_color.darkened(0.12))
+	return marker
 
 func get_tile_stone_color(grid_pos: Vector2i) -> Color:
 	var color := stone_light_color if (grid_pos.x + grid_pos.y) % 2 == 0 else stone_dark_color
