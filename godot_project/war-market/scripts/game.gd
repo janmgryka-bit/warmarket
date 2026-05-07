@@ -825,7 +825,7 @@ func check_round_end() -> void:
 	else:
 		end_round("DRAW")
 
-func create_battle_summary(result_text: String) -> Dictionary:
+func create_battle_summary(result_text: String, player_damage_taken: int = 0) -> Dictionary:
 	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
 	return {
@@ -839,7 +839,8 @@ func create_battle_summary(result_text: String) -> Dictionary:
 		"player_army_snapshot": create_player_army_snapshot(),
 		"opponent_source": opponent_source,
 		"opponent_army_snapshot": opponent_snapshot,
-		"surviving_units": create_surviving_units_snapshot()
+		"surviving_units": create_surviving_units_snapshot(),
+		"player_damage_taken": player_damage_taken
 	}
 
 func create_surviving_units_snapshot() -> Array[Dictionary]:
@@ -857,6 +858,28 @@ func create_surviving_units_snapshot() -> Array[Dictionary]:
 			"grid_pos": unit.grid_position
 		})
 	return snapshot
+
+func get_round_loss_damage(round_number: int) -> int:
+	if round_number <= 2:
+		return 2
+	if round_number <= 4:
+		return 3
+	if round_number <= 6:
+		return 4
+	if round_number <= 8:
+		return 5
+	return 6
+
+func get_surviving_opponent_unit_damage() -> int:
+	var damage := 0
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if is_instance_valid(unit) and unit.team_id == 1 and unit.current_hp > 0:
+			damage += 1
+	return damage
+
+func calculate_player_loss_damage() -> int:
+	return get_round_loss_damage(round_number) + get_surviving_opponent_unit_damage()
 
 func record_battle_summary(summary: Dictionary) -> void:
 	battle_history.append(summary)
@@ -878,7 +901,11 @@ func get_battle_history_summary_text() -> String:
 	return "\n".join(lines)
 
 func end_round(result_text: String) -> void:
-	last_battle_summary = create_battle_summary(result_text)
+	var player_damage_taken := 0
+	if result_text == "ENEMY WINS":
+		player_damage_taken = calculate_player_loss_damage()
+	
+	last_battle_summary = create_battle_summary(result_text, player_damage_taken)
 	record_battle_summary(last_battle_summary)
 	print("Battle summary recorded")
 	update_streaks_for_result(result_text)
@@ -896,9 +923,9 @@ func end_round(result_text: String) -> void:
 	restart_button.visible = true
 
 	if result_text == "ENEMY WINS":
-		player_health = max(player_health - loss_damage, 0)
+		player_health = max(player_health - player_damage_taken, 0)
 		update_player_health_label()
-		print("PLAYER TAKES ", loss_damage, " DAMAGE. HP: ", player_health)
+		print("Player took ", player_damage_taken, " damage. HP: ", player_health)
 		if player_health <= 0:
 			trigger_game_over()
 

@@ -44,6 +44,7 @@ func _init() -> void:
 	await run_test("Invalid bench deploy", Callable(self, "test_invalid_bench_deploy"))
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
+	await run_test("Player loss damage", Callable(self, "test_player_loss_damage"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
 	await run_test("Battle summary", Callable(self, "test_battle_summary"))
 	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
@@ -535,11 +536,41 @@ func test_deployed_sell() -> void:
 
 func test_game_over_after_loss() -> void:
 	var game = await load_game()
-	game.player_health = game.loss_damage
+	game.player_health = game.calculate_player_loss_damage()
 	game.end_round("ENEMY WINS")
 	assert_eq(game.player_health, 0, "Player health should be clamped to zero after loss")
 	assert_true(game.game_over, "Game over should be true after health reaches zero")
 	assert_eq(game.round_result_label.text, "GAME OVER", "Round result label should show GAME OVER")
+
+func test_player_loss_damage() -> void:
+	var game = await load_game()
+	assert_eq(game.get_round_loss_damage(1), 2, "Round 1 loss damage should be 2")
+	assert_eq(game.get_round_loss_damage(3), 3, "Round 3 loss damage should be 3")
+	assert_eq(game.get_round_loss_damage(5), 4, "Round 5 loss damage should be 4")
+	assert_eq(game.get_round_loss_damage(7), 5, "Round 7 loss damage should be 5")
+	assert_eq(game.get_round_loss_damage(9), 6, "Round 9 loss damage should be 6")
+
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == 1:
+			unit.queue_free()
+	await process_frame
+
+	game.spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
+	game.spawn_unit_by_id("viking_axeman", 1, Vector2i(6, 1))
+	await process_frame
+
+	game.round_number = 3
+	game.player_health = 20
+	var expected_damage = game.get_round_loss_damage(game.round_number) + 2
+	game.end_round("ENEMY WINS")
+	assert_eq(game.player_health, 20 - expected_damage, "Loss should damage player by round damage plus surviving opponents")
+	assert_eq(game.last_battle_summary["player_damage_taken"], expected_damage, "Battle summary should record player damage taken")
+
+	game = await load_game()
+	var health_before = game.player_health
+	game.end_round("PLAYER WINS")
+	assert_eq(game.player_health, health_before, "Winning should not damage player health")
+	assert_eq(game.last_battle_summary["player_damage_taken"], 0, "Winning summary should record no player damage")
 
 func test_battle_summary() -> void:
 	var game = await load_game()
@@ -586,7 +617,7 @@ func test_victory_after_round_ten() -> void:
 func test_reset_game_new_run() -> void:
 	var game = await load_game()
 	# Force game over
-	game.player_health = game.loss_damage
+	game.player_health = game.calculate_player_loss_damage()
 	game.end_round("ENEMY WINS")
 	assert_true(game.game_over, "Game should be over before reset")
 	
