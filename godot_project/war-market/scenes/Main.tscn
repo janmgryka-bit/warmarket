@@ -82,9 +82,9 @@ script = ExtResource("1_rvslj")
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2125345866]
-transform = Transform3D(0.7907237, -0.44760382, 0.41823506, 0, 0.6828025, 0.73060274, -0.6121732, -0.5775709, 0.5398078, 6.35, 8.3, 8.65)
+transform = Transform3D(1, 0, 0, 0, 0.755454, 0.655202, 0, -0.655202, 0.755454, 0, 10.25, 8.45)
 current = true
-fov = 58.0
+fov = 46.0
 
 [node name="ArenaFloor" type="MeshInstance3D" parent="." unique_id=440429076]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
@@ -222,27 +222,27 @@ script = ExtResource("3_audio")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 14
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
 mouse_filter = 2
 
 [node name="RootColumns" type="HBoxContainer" parent="UI/MainLayout"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 mouse_filter = 2
 
 [node name="LeftSidebar" type="VBoxContainer" parent="UI/MainLayout/RootColumns"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
-theme_override_constants/separation = 6
+custom_minimum_size = Vector2(190, 0)
+theme_override_constants/separation = 5
 mouse_filter = 2
 
 [node name="StartBattleButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1115291842]
@@ -311,13 +311,13 @@ text = "Reroll (2g)"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 3
 mouse_filter = 2
 
 [node name="ActionFeedbackLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea"]
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 22)
 text = "Action feedback"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -330,26 +330,26 @@ mouse_filter = 2
 
 [node name="BottomArea" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 192)
-theme_override_constants/separation = 7
+custom_minimum_size = Vector2(0, 156)
+theme_override_constants/separation = 2
 mouse_filter = 2
 
 [node name="BenchPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=2100000001]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 74)
+custom_minimum_size = Vector2(0, 56)
 
 [node name="BenchMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 4.0
-offset_right = -8.0
-offset_bottom = -5.0
+offset_left = 5.0
+offset_top = 2.0
+offset_right = -5.0
+offset_bottom = -3.0
 
 [node name="BenchContent" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
 [node name="BenchLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent" unique_id=2100000002]
 layout_mode = 2
@@ -368,16 +368,16 @@ theme_override_constants/separation = 6
 
 [node name="ShopPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=1612883262]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 105)
+custom_minimum_size = Vector2(0, 96)
 
 [node name="ShopMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
-offset_top = 8.0
+offset_top = 6.0
 offset_right = -10.0
-offset_bottom = -8.0
+offset_bottom = -6.0
 
 [node name="ShopScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin"]
 layout_mode = 2
@@ -393,8 +393,8 @@ theme_override_constants/separation = 8
 
 [node name="RightSidebar" type="VBoxContainer" parent="UI/MainLayout/RootColumns"]
 layout_mode = 2
-custom_minimum_size = Vector2(260, 0)
-theme_override_constants/separation = 10
+custom_minimum_size = Vector2(230, 0)
+theme_override_constants/separation = 8
 mouse_filter = 2
 
 [node name="UnitDetailsPanel" type="Panel" parent="UI/MainLayout/RootColumns/RightSidebar"]

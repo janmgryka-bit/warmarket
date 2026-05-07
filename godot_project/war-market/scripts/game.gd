@@ -157,14 +157,25 @@ func style_panel(panel: Panel) -> void:
 	panel.add_theme_stylebox_override("panel", create_ui_stylebox(ui_dark_stone_color, ui_brass_color, 2, 4))
 
 func style_bench_panel(panel: Panel) -> void:
-	var style := create_ui_stylebox(Color(0.13, 0.14, 0.12, 0.94), Color(0.48, 0.40, 0.25, 0.95), 2, 3)
-	style.border_width_top = 4
-	style.border_width_bottom = 2
-	style.content_margin_left = 10
-	style.content_margin_top = 4
-	style.content_margin_right = 10
-	style.content_margin_bottom = 5
+	var style := create_ui_stylebox(Color(0.08, 0.08, 0.07, 0.58), Color(0.58, 0.48, 0.28, 0.88), 1, 2)
+	style.border_width_top = 3
+	style.border_width_bottom = 1
+	style.content_margin_left = 6
+	style.content_margin_top = 2
+	style.content_margin_right = 6
+	style.content_margin_bottom = 3
 	panel.add_theme_stylebox_override("panel", style)
+
+func style_bench_slot_button(button: Button, faction: String) -> void:
+	var faction_color := get_faction_card_color(faction)
+	var bg_color := Color(0.10, 0.10, 0.09, 0.88).lerp(faction_color, 0.12)
+	var hover_color := Color(0.18, 0.17, 0.14, 0.96).lerp(faction_color, 0.18)
+	button.add_theme_stylebox_override("normal", create_ui_stylebox(bg_color, Color(0.46, 0.38, 0.23, 0.88), 1, 2))
+	button.add_theme_stylebox_override("hover", create_ui_stylebox(hover_color, ui_gold_color, 2, 2))
+	button.add_theme_stylebox_override("pressed", create_ui_stylebox(Color(0.10, 0.09, 0.07, 0.98), ui_gold_color, 2, 2))
+	button.add_theme_color_override("font_color", ui_light_text_color)
+	button.add_theme_color_override("font_hover_color", ui_gold_color)
+	button.add_theme_color_override("font_pressed_color", ui_gold_color)
 
 func style_buttons_under(node: Node) -> void:
 	for child in node.get_children():
@@ -422,7 +433,7 @@ func setup_camera_defaults() -> void:
 	if camera == null:
 		return
 	default_camera_position = camera.global_position
-	camera_focus_position = Vector3(0.0, 0.65, 0.45)
+	camera_focus_position = Vector3(0.0, 0.75, 1.65)
 	focus_camera_on_board()
 
 func focus_camera_on_board() -> void:
@@ -1864,11 +1875,11 @@ func update_bench_ui() -> void:
 	for i in range(bench_units.size()):
 		var entry = bench_units[i]
 		var button = Button.new()
-		button.custom_minimum_size = Vector2(160, 46)
+		button.custom_minimum_size = Vector2(140, 36)
 		button.text = get_bench_unit_display_name(entry)
 		var unit_id = entry.get("unit_id", "")
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		style_unit_card_button(button, data.get("faction", ""))
+		style_bench_slot_button(button, data.get("faction", ""))
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
 

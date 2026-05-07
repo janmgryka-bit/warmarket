@@ -24,6 +24,9 @@ var platform_base_color: Color = Color(0.23, 0.24, 0.23)
 var platform_side_color: Color = Color(0.16, 0.17, 0.16)
 var frame_stone_color: Color = Color(0.29, 0.30, 0.28)
 var frame_trim_color: Color = Color(0.50, 0.42, 0.25)
+var reserve_dock_color: Color = Color(0.18, 0.16, 0.12)
+var reserve_slot_color: Color = Color(0.26, 0.24, 0.19)
+var reserve_slot_trim_color: Color = Color(0.54, 0.44, 0.25)
 
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
@@ -139,6 +142,7 @@ func create_arena_platform() -> void:
 
 	create_platform_corner_supports(platform, frame_x, frame_z)
 	create_platform_trim(platform, platform_width, platform_height)
+	create_reserve_dock(platform, board_width, frame_z)
 
 func create_platform_block(block_name: String, block_size: Vector3, block_position: Vector3, color: Color) -> MeshInstance3D:
 	var block := MeshInstance3D.new()
@@ -197,6 +201,39 @@ func create_platform_trim(platform: Node3D, platform_width: float, platform_heig
 		Vector3(trim_x, trim_y, 0.0),
 		frame_trim_color
 	))
+
+func create_reserve_dock(platform: Node3D, board_width: float, front_frame_z: float) -> void:
+	var dock_depth := tile_size * 0.72
+	var dock_width := board_width - tile_size * 0.22
+	var dock_z := front_frame_z + dock_depth * 0.58
+	var dock := create_platform_block(
+		"ReserveDock",
+		Vector3(dock_width, 0.18, dock_depth),
+		Vector3(0.0, 0.76, dock_z),
+		reserve_dock_color
+	)
+	platform.add_child(dock)
+
+	var slot_count := 6
+	var slot_gap := tile_size * 0.08
+	var slot_width := (dock_width - slot_gap * float(slot_count + 1)) / float(slot_count)
+	for index in range(slot_count):
+		var slot_x := -dock_width / 2.0 + slot_gap + slot_width / 2.0 + float(index) * (slot_width + slot_gap)
+		var slot := create_platform_block(
+			"ReserveSlot_%s" % index,
+			Vector3(slot_width, 0.035, dock_depth * 0.56),
+			Vector3(slot_x, 0.875, dock_z),
+			reserve_slot_color
+		)
+		platform.add_child(slot)
+
+	var front_trim := create_platform_block(
+		"ReserveDockFrontTrim",
+		Vector3(dock_width, 0.06, 0.08),
+		Vector3(0.0, 0.91, dock_z + dock_depth * 0.44),
+		reserve_slot_trim_color
+	)
+	platform.add_child(front_trim)
 
 func create_tile_slab(grid_pos: Vector2i) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
