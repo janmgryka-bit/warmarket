@@ -30,6 +30,8 @@ extends Node3D
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var unit_database = preload("res://scripts/unit_database.gd")
+var item_database = preload("res://scripts/item_database.gd")
+var enemy_wave_database = preload("res://scripts/enemy_wave_database.gd")
 
 # State
 var battle_started: bool = false
@@ -47,25 +49,6 @@ var current_battle_payload: Dictionary = {}
 var battle_history: Array[Dictionary] = []
 var max_battle_history_entries: int = 20
 var action_feedback_timer: Timer = null
-
-const ITEM_DATABASE := {
-	"training_sword": {
-		"name": "Training Sword",
-		"damage_bonus": 10.0
-	},
-	"wooden_shield": {
-		"name": "Wooden Shield",
-		"max_hp_bonus": 50.0
-	},
-	"longbow": {
-		"name": "Longbow",
-		"attack_range_bonus": 1.0
-	},
-	"war_drum": {
-		"name": "War Drum",
-		"attack_cooldown_multiplier": 0.9
-	}
-}
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -172,36 +155,6 @@ var shop_tier_odds := {
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
-
-# PvE wave generator definitions by round.
-# These temporary PvE waves currently provide the opponent army for each battle.
-var enemy_wave_definitions: Dictionary = {
-	1: [
-		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)}
-	],
-	2: [
-		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
-		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)}
-	],
-	3: [
-		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
-		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
-		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)}
-	],
-	4: [
-		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
-		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
-		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)},
-		{"unit_id": "slav_hunter", "grid_pos": Vector2i(3, 1)}
-	],
-	5: [
-		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
-		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
-		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)},
-		{"unit_id": "slav_hunter", "grid_pos": Vector2i(3, 1)},
-		{"unit_id": "roman_spearman", "grid_pos": Vector2i(2, 1)}
-	]
-}
 
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
@@ -390,15 +343,7 @@ func clear_opponent_units() -> void:
 func spawn_enemy_wave(round_num: int) -> void:
 	# Temporary PvE wave generator used as the current opponent army source.
 	# Use exact definition if it exists, otherwise use the highest available.
-	var wave_def: Array = []
-	
-	if round_num in enemy_wave_definitions:
-		wave_def = enemy_wave_definitions[round_num]
-	else:
-		# Use the highest available definition for rounds beyond defined ones
-		var max_defined_round = 5
-		if max_defined_round in enemy_wave_definitions:
-			wave_def = enemy_wave_definitions[max_defined_round]
+	var wave_def = enemy_wave_database.get_wave_definition(round_num)
 	
 	# Spawn all enemy team units in the wave definition.
 	for entry in wave_def:
@@ -1487,13 +1432,13 @@ func _on_reroll_button_pressed() -> void:
 	print("Rerolled shop for ", reroll_cost, " gold")
 
 func get_item_data(item_id: String) -> Dictionary:
-	return ITEM_DATABASE.get(item_id, {})
+	return item_database.get_item_data(item_id)
 
 func get_item_name(item_id: String) -> String:
-	return get_item_data(item_id).get("name", item_id)
+	return item_database.get_item_name(item_id)
 
 func grant_random_item() -> void:
-	var item_ids = ITEM_DATABASE.keys()
+	var item_ids = item_database.get_all_item_ids()
 	if item_ids.is_empty():
 		return
 
