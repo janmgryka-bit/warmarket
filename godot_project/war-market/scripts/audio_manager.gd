@@ -11,7 +11,21 @@ extends Node
 @export var victory_sound: AudioStream
 @export var game_over_sound: AudioStream
 
+var muted: bool = false
+
+func set_muted(value: bool) -> void:
+	muted = value
+
+func toggle_muted() -> bool:
+	muted = not muted
+	return muted
+
+func is_muted() -> bool:
+	return muted
+
 func play_stream(stream: AudioStream) -> void:
+	if muted:
+		return
 	if stream == null:
 		return
 

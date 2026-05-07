@@ -57,6 +57,10 @@ text = "Start Battle"
 layout_mode = 2
 text = "Speed: 1x"
 
+[node name="MuteButton" type="Button" parent="UI/HudContainer"]
+layout_mode = 2
+text = "Sound: On"
+
 [node name="RoundResultLabel" type="Label" parent="UI/HudContainer" unique_id=1876565823]
 layout_mode = 2
 text = "Round Result"
@@ -200,6 +204,7 @@ separation = 10
 
 [connection signal="pressed" from="UI/HudContainer/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/BattleSpeedButton" to="." method="_on_battle_speed_button_pressed"]
+[connection signal="pressed" from="UI/HudContainer/MuteButton" to="." method="_on_mute_button_pressed"]
 [connection signal="pressed" from="UI/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/RerollButton" to="." method="_on_reroll_button_pressed"]
 [connection signal="pressed" from="UI/HudContainer/BuyXPButton" to="." method="_on_buy_xp_button_pressed"]

@@ -6,6 +6,7 @@ extends Node3D
 @onready var audio_manager: Node = $AudioManager
 @onready var start_button: Button = $UI/HudContainer/StartBattleButton
 @onready var battle_speed_button: Button = $UI/HudContainer/BattleSpeedButton
+@onready var mute_button: Button = $UI/HudContainer/MuteButton
 @onready var restart_button: Button = $UI/RestartRoundButton
 @onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
 @onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
@@ -122,6 +123,20 @@ func play_audio_event(event_name: String) -> void:
 	if audio_manager.has_method(method_name):
 		audio_manager.call(method_name)
 
+func update_mute_button_text() -> void:
+	if mute_button == null:
+		return
+
+	var audio_muted := false
+	if audio_manager != null and audio_manager.has_method("is_muted"):
+		audio_muted = audio_manager.call("is_muted")
+	mute_button.text = "Sound: Off" if audio_muted else "Sound: On"
+
+func _on_mute_button_pressed() -> void:
+	if audio_manager != null and audio_manager.has_method("toggle_muted"):
+		audio_manager.call("toggle_muted")
+	update_mute_button_text()
+
 # Economy
 var starting_gold: int = 10
 var round_income: int = 5
@@ -203,6 +218,7 @@ func _ready() -> void:
 	restart_button.visible = false
 	apply_battle_speed()
 	update_battle_speed_ui()
+	update_mute_button_text()
 	clear_action_feedback()
 	add_event_log("New run started")
 
@@ -1140,6 +1156,7 @@ func reset_game() -> void:
 	update_bench_ui()
 	update_round_label()
 	update_item_ui()
+	update_mute_button_text()
 	
 	# Roll fresh shop and populate
 	roll_shop_offers()

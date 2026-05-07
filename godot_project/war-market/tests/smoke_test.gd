@@ -25,6 +25,7 @@ func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
+	await run_test("Mute toggle", Callable(self, "test_mute_toggle"))
 	await run_test("Event log", Callable(self, "test_event_log"))
 	await run_test("Action feedback", Callable(self, "test_action_feedback"))
 	await run_test("Items", Callable(self, "test_items"))
@@ -96,6 +97,9 @@ func test_initial_state() -> void:
 	assert_eq(game.item_inventory.size(), 0, "Item inventory should start empty")
 	assert_eq(game.item_label.text, "Items: 0", "ItemLabel should show empty inventory")
 	assert_true(game.audio_manager != null, "AudioManager should exist")
+	assert_true(game.mute_button != null, "MuteButton should exist")
+	assert_eq(game.mute_button.text, "Sound: On", "MuteButton should start with sound on")
+	assert_eq(game.audio_manager.call("is_muted"), false, "AudioManager should start unmuted")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -125,6 +129,24 @@ func test_battle_speed_toggle() -> void:
 	assert_eq(game.battle_speed_index, 0, "Restart round should reset battle speed index")
 	assert_float_eq(Engine.time_scale, 1.0, "Restart round should reset battle speed to 1x")
 	assert_true("1x" in game.battle_speed_button.text, "Restart round should show 1x speed")
+
+func test_mute_toggle() -> void:
+	var game = await load_game()
+	assert_eq(game.audio_manager.call("is_muted"), false, "AudioManager should start unmuted")
+
+	var muted = game.audio_manager.call("toggle_muted")
+	game.update_mute_button_text()
+	assert_eq(muted, true, "toggle_muted should return the new muted state")
+	assert_eq(game.audio_manager.call("is_muted"), true, "AudioManager should be muted after toggle")
+	assert_eq(game.mute_button.text, "Sound: Off", "MuteButton should show sound off")
+	game.play_audio_event("buy")
+	game.reset_game()
+	assert_eq(game.audio_manager.call("is_muted"), true, "reset_game should keep session mute preference")
+	assert_eq(game.mute_button.text, "Sound: Off", "MuteButton should keep showing sound off after reset")
+
+	game._on_mute_button_pressed()
+	assert_eq(game.audio_manager.call("is_muted"), false, "Mute button should unmute audio")
+	assert_eq(game.mute_button.text, "Sound: On", "MuteButton should show sound on")
 
 func test_event_log() -> void:
 	var game = await load_game()
