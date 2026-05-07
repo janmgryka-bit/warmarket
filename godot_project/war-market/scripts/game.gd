@@ -32,6 +32,7 @@ var unit_scene: PackedScene = preload("res://units/Unit.tscn")
 var unit_database = preload("res://scripts/unit_database.gd")
 var item_database = preload("res://scripts/item_database.gd")
 var enemy_wave_database = preload("res://scripts/enemy_wave_database.gd")
+var economy_rules = preload("res://scripts/economy_rules.gd")
 
 # State
 var battle_started: bool = false
@@ -938,15 +939,7 @@ func create_surviving_units_snapshot() -> Array[Dictionary]:
 	return snapshot
 
 func get_round_loss_damage(target_round: int) -> int:
-	if target_round <= 2:
-		return 2
-	if target_round <= 4:
-		return 3
-	if target_round <= 6:
-		return 4
-	if target_round <= 8:
-		return 5
-	return 6
+	return economy_rules.get_round_loss_damage(target_round)
 
 func get_surviving_opponent_unit_damage() -> int:
 	var damage := 0
@@ -1020,7 +1013,7 @@ func _on_restart_round_button_pressed() -> void:
 		restart_round()
 
 func calculate_interest_gold() -> int:
-	return min(int(floor(float(player_gold) / 10.0)), interest_cap)
+	return economy_rules.calculate_interest_gold(player_gold, interest_cap)
 
 func update_streaks_for_result(result_text: String) -> void:
 	if result_text == "PLAYER WINS":
@@ -1035,11 +1028,7 @@ func update_streaks_for_result(result_text: String) -> void:
 
 func calculate_streak_bonus() -> int:
 	var current_streak = max(win_streak, loss_streak)
-	if current_streak < 2:
-		return 0
-	if current_streak < 4:
-		return 1
-	return max_streak_bonus
+	return economy_rules.calculate_streak_bonus(current_streak, max_streak_bonus)
 
 func restart_round() -> void:
 	if game_over or victory:
@@ -1107,10 +1096,10 @@ func update_round_label() -> void:
 func get_xp_required_for_next_level() -> int:
 	if player_level >= max_player_level:
 		return 0
-	return player_level * 2
+	return economy_rules.get_xp_required_for_level(player_level)
 
 func update_max_player_units() -> void:
-	max_player_units = player_level + 1
+	max_player_units = economy_rules.get_max_player_units_for_level(player_level)
 
 func update_player_level_label() -> void:
 	if player_level >= max_player_level:
