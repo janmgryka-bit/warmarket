@@ -7,6 +7,74 @@
 [sub_resource type="BoxMesh" id="BoxMesh_qnwvq"]
 size = Vector3(12, 0.2, 12)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_courtyard_stone"]
+albedo_color = Color(0.31, 0.32, 0.31, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dark_stone"]
+albedo_color = Color(0.18, 0.19, 0.18, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_muted_wood"]
+albedo_color = Color(0.34, 0.22, 0.13, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_barrel_band"]
+albedo_color = Color(0.12, 0.12, 0.11, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_player_banner"]
+albedo_color = Color(0.16, 0.28, 0.42, 1)
+roughness = 0.65
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_enemy_banner"]
+albedo_color = Color(0.42, 0.17, 0.15, 1)
+roughness = 0.65
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_torch_flame"]
+albedo_color = Color(1, 0.48, 0.12, 1)
+emission_enabled = true
+emission = Color(1, 0.35, 0.08, 1)
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_long"]
+size = Vector3(11.8, 0.75, 0.32)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_side"]
+size = Vector3(0.32, 0.75, 11.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_cap"]
+size = Vector3(0.55, 0.18, 0.55)
+
+[sub_resource type="BoxMesh" id="BoxMesh_crate"]
+size = Vector3(0.55, 0.55, 0.55)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_barrel"]
+top_radius = 0.22
+bottom_radius = 0.22
+height = 0.58
+radial_segments = 8
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_banner_post"]
+size = Vector3(0.08, 1.15, 0.08)
+
+[sub_resource type="BoxMesh" id="BoxMesh_banner_fabric"]
+size = Vector3(0.5, 0.58, 0.04)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_torch_stand"]
+top_radius = 0.045
+bottom_radius = 0.045
+height = 0.82
+radial_segments = 6
+rings = 1
+
+[sub_resource type="SphereMesh" id="SphereMesh_torch_flame"]
+radius = 0.12
+height = 0.22
+radial_segments = 8
+rings = 4
+
 [node name="Main" type="Node3D" unique_id=1694071260]
 script = ExtResource("1_rvslj")
 
@@ -26,6 +94,123 @@ mesh = SubResource("BoxMesh_qnwvq")
 script = ExtResource("1_elqb8")
 
 [node name="Units" type="Node3D" parent="." unique_id=842471417]
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="NorthWall" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -5.45)
+mesh = SubResource("BoxMesh_wall_long")
+material_override = SubResource("StandardMaterial3D_courtyard_stone")
+
+[node name="SouthWall" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 5.45)
+mesh = SubResource("BoxMesh_wall_long")
+material_override = SubResource("StandardMaterial3D_courtyard_stone")
+
+[node name="WestWall" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.45, 0)
+mesh = SubResource("BoxMesh_wall_side")
+material_override = SubResource("StandardMaterial3D_courtyard_stone")
+
+[node name="EastWall" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.45, 0)
+mesh = SubResource("BoxMesh_wall_side")
+material_override = SubResource("StandardMaterial3D_courtyard_stone")
+
+[node name="WallCapNW" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.93, -5.45)
+mesh = SubResource("BoxMesh_wall_cap")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="WallCapNE" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.93, -5.45)
+mesh = SubResource("BoxMesh_wall_cap")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="WallCapSW" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 0.93, 5.45)
+mesh = SubResource("BoxMesh_wall_cap")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="WallCapSE" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.45, 0.93, 5.45)
+mesh = SubResource("BoxMesh_wall_cap")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="CrateStackA" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.15, 0.45, 3.75)
+mesh = SubResource("BoxMesh_crate")
+material_override = SubResource("StandardMaterial3D_muted_wood")
+
+[node name="CrateStackB" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(0.90630776, 0, -0.42261827, 0, 1, 0, 0.42261827, 0, 0.90630776, -6.55, 0.72, 4.2)
+mesh = SubResource("BoxMesh_crate")
+material_override = SubResource("StandardMaterial3D_muted_wood")
+
+[node name="CrateStackC" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 6.15, 0.45, -3.9)
+mesh = SubResource("BoxMesh_crate")
+material_override = SubResource("StandardMaterial3D_muted_wood")
+
+[node name="BarrelA" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(0.9659258, 0, 0.25881904, 0, 1, 0, -0.25881904, 0, 0.9659258, -5.95, 0.48, -4.0)
+mesh = SubResource("CylinderMesh_barrel")
+material_override = SubResource("StandardMaterial3D_muted_wood")
+
+[node name="BarrelB" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 6.0, 0.48, 3.9)
+mesh = SubResource("CylinderMesh_barrel")
+material_override = SubResource("StandardMaterial3D_muted_wood")
+
+[node name="BarrelBandA" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1.06, 0, 0, 0, 0.14, 0, 0, 0, 1.06, -5.95, 0.48, -4.0)
+mesh = SubResource("CylinderMesh_barrel")
+material_override = SubResource("StandardMaterial3D_barrel_band")
+
+[node name="BarrelBandB" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1.06, 0, 0, 0, 0.14, 0, 0, 0, 1.06, 6.0, 0.48, 3.9)
+mesh = SubResource("CylinderMesh_barrel")
+material_override = SubResource("StandardMaterial3D_barrel_band")
+
+[node name="PlayerBannerPost" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.7, 0.95, 5.75)
+mesh = SubResource("BoxMesh_banner_post")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="PlayerBannerFabric" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.38, 1.12, 5.75)
+mesh = SubResource("BoxMesh_banner_fabric")
+material_override = SubResource("StandardMaterial3D_player_banner")
+
+[node name="EnemyBannerPost" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 0.95, -5.75)
+mesh = SubResource("BoxMesh_banner_post")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="EnemyBannerFabric" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.38, 1.12, -5.75)
+mesh = SubResource("BoxMesh_banner_fabric")
+material_override = SubResource("StandardMaterial3D_enemy_banner")
+
+[node name="TorchStandA" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15, 0.76, 0)
+mesh = SubResource("CylinderMesh_torch_stand")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="TorchFlameA" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15, 1.25, 0)
+mesh = SubResource("SphereMesh_torch_flame")
+material_override = SubResource("StandardMaterial3D_torch_flame")
+
+[node name="TorchStandB" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.15, 0.76, 0)
+mesh = SubResource("CylinderMesh_torch_stand")
+material_override = SubResource("StandardMaterial3D_dark_stone")
+
+[node name="TorchFlameB" type="MeshInstance3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.15, 1.25, 0)
+mesh = SubResource("SphereMesh_torch_flame")
+material_override = SubResource("StandardMaterial3D_torch_flame")
 
 [node name="AudioManager" type="Node" parent="."]
 script = ExtResource("3_audio")
