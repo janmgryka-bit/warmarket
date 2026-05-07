@@ -48,6 +48,7 @@ func _init() -> void:
 	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
+	await run_test("Opponent army snapshot", Callable(self, "test_opponent_army_snapshot"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -589,6 +590,40 @@ func test_enemy_wave_spawning() -> void:
 			enemy_count += 1
 	
 	assert_eq(enemy_count, 5, "Round 5 should spawn exactly 5 enemy units")
+
+func test_opponent_army_snapshot() -> void:
+	var game = await load_game()
+	var snapshot = game.create_player_army_snapshot()
+	assert_true(snapshot.size() > 0, "Player army snapshot should include deployed roster units")
+	var first_entry = snapshot[0]
+	assert_true(first_entry.has("unit_id"), "Snapshot entries should include unit_id")
+	assert_true(first_entry.has("grid_pos"), "Snapshot entries should include grid_pos")
+	assert_true(first_entry.has("star_level"), "Snapshot entries should include star_level")
+	assert_true(not first_entry.has("roster_id"), "Snapshot entries should omit roster_id")
+
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == 1:
+			unit.queue_free()
+	await process_frame
+
+	game.opponent_army_snapshot = snapshot
+	game.use_snapshot_opponent = true
+	game.spawn_opponent_army(game.round_number)
+	await process_frame
+
+	var opponent_count = 0
+	var mirrored_first_pos = game.mirror_grid_pos_for_opponent(first_entry["grid_pos"])
+	var found_mirrored_first = false
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id != 1:
+			continue
+		opponent_count += 1
+		if unit.grid_position == mirrored_first_pos:
+			found_mirrored_first = true
+			assert_eq(unit.get_meta("star_level"), first_entry["star_level"], "Snapshot opponent should preserve star level")
+
+	assert_eq(opponent_count, snapshot.size(), "Snapshot opponent should spawn one enemy per snapshot entry")
+	assert_true(found_mirrored_first, "Snapshot opponent should mirror player grid positions")
 
 func test_next_round_bonus() -> void:
 	var game = await load_game()

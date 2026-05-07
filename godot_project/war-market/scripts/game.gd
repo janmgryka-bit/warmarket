@@ -134,6 +134,8 @@ var last_round_result: String = ""
 var bench_units: Array[Dictionary] = []
 var max_bench_units: int = 6
 var selected_bench_index: int = -1
+var use_snapshot_opponent: bool = false
+var opponent_army_snapshot: Array[Dictionary] = []
 
 # Setup
 func _ready() -> void:
@@ -239,10 +241,34 @@ func spawn_player_roster() -> void:
 func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 
+func create_player_army_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	for entry in player_roster:
+		snapshot.append({
+			"unit_id": entry.get("unit_id", ""),
+			"grid_pos": entry.get("grid_pos", Vector2i.ZERO),
+			"star_level": entry.get("star_level", 1)
+		})
+	return snapshot
+
+func mirror_grid_pos_for_opponent(grid_pos: Vector2i) -> Vector2i:
+	return Vector2i(grid_pos.x, 7 - grid_pos.y)
+
 func spawn_opponent_army(round_num: int) -> void:
 	# Opponent army = enemy team units for the current battle.
-	# For now, the PvE wave generator is the temporary source of that army.
+	if use_snapshot_opponent and not opponent_army_snapshot.is_empty():
+		spawn_opponent_army_from_snapshot(opponent_army_snapshot)
+		return
+
+	# For now, the PvE wave generator is the fallback temporary source of that army.
 	spawn_enemy_wave(round_num)
+
+func spawn_opponent_army_from_snapshot(snapshot: Array[Dictionary]) -> void:
+	for entry in snapshot:
+		var unit_id = entry.get("unit_id", "")
+		var grid_pos = mirror_grid_pos_for_opponent(entry.get("grid_pos", Vector2i.ZERO))
+		var star_level = entry.get("star_level", 1)
+		spawn_unit_by_id(unit_id, 1, grid_pos, star_level)
 
 func spawn_enemy_wave(round_num: int) -> void:
 	# Temporary PvE wave generator used as the current opponent army source.
