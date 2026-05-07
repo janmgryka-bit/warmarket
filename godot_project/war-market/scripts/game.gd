@@ -41,6 +41,8 @@ var last_battle_summary: Dictionary = {}
 var current_battle_id: int = 0
 var current_battle_seed: int = 0
 var current_battle_payload: Dictionary = {}
+var battle_history: Array[Dictionary] = []
+var max_battle_history_entries: int = 20
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -852,8 +854,28 @@ func create_surviving_units_snapshot() -> Array[Dictionary]:
 		})
 	return snapshot
 
+func record_battle_summary(summary: Dictionary) -> void:
+	battle_history.append(summary)
+	while battle_history.size() > max_battle_history_entries:
+		battle_history.remove_at(0)
+
+func get_battle_history_summary_text() -> String:
+	if battle_history.is_empty():
+		return "Battle History: None"
+
+	var lines := PackedStringArray()
+	lines.append("Battle History:")
+	for summary in battle_history:
+		lines.append("#%d R%d %s" % [
+			summary.get("battle_id", 0),
+			summary.get("round_number", 0),
+			summary.get("result", "")
+		])
+	return "\n".join(lines)
+
 func end_round(result_text: String) -> void:
 	last_battle_summary = create_battle_summary(result_text)
+	record_battle_summary(last_battle_summary)
 	add_event_log("Battle summary recorded")
 
 	if result_text == "PLAYER WINS" and round_number >= max_rounds:
@@ -1014,6 +1036,7 @@ func reset_game() -> void:
 	update_max_player_units()
 	event_log.clear()
 	last_battle_summary.clear()
+	battle_history.clear()
 	use_snapshot_opponent = false
 	opponent_army_snapshot.clear()
 	

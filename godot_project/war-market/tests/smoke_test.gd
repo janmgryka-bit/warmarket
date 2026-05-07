@@ -545,6 +545,12 @@ func test_battle_summary() -> void:
 	assert_true(summary.has("player_army_snapshot"), "Battle summary should include player army snapshot")
 	assert_true(summary.has("opponent_source"), "Battle summary should include opponent source")
 	assert_true(typeof(summary["surviving_units"]) == TYPE_ARRAY, "Battle summary surviving units should be an array")
+	assert_eq(game.battle_history.size(), 1, "Battle history should record one summary")
+	assert_eq(game.battle_history[0]["result"], "PLAYER WINS", "Battle history should store the battle result")
+	assert_true("#1 R1 PLAYER WINS" in game.get_battle_history_summary_text(), "Battle history text should summarize the result")
+
+	game.reset_game()
+	assert_eq(game.battle_history.size(), 0, "Battle history should clear on reset")
 
 func test_victory_after_round_ten() -> void:
 	var game = await load_game()
