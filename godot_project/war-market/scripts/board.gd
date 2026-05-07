@@ -10,6 +10,11 @@ var tile_bodies: Dictionary = {}
 var tile_original_colors: Dictionary = {}
 var highlighted_tile_positions: Array[Vector2i] = []
 var highlight_color: Color = Color(0.25, 1.0, 0.35)
+var stone_light_color: Color = Color(0.48, 0.49, 0.47)
+var stone_dark_color: Color = Color(0.36, 0.37, 0.36)
+var player_side_tint: Color = Color(0.18, 0.34, 0.52)
+var enemy_side_tint: Color = Color(0.48, 0.24, 0.22)
+var slab_edge_color: Color = Color(0.20, 0.21, 0.20)
 
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
@@ -29,19 +34,11 @@ func create_board() -> void:
 			tile_body.input_ray_pickable = true
 			add_child(tile_body)
 			
-			var mesh_instance := MeshInstance3D.new()
-			var mesh := BoxMesh.new()
-			mesh.size = Vector3(tile_size * 0.9, 0.25, tile_size * 0.9)
-			mesh_instance.mesh = mesh
-			
-			var material := StandardMaterial3D.new()
-			material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			
-			if (x + z) % 2 == 0:
-				material.albedo_color = Color(0.85, 0.72, 0.45)
-			else:
-				material.albedo_color = Color(0.30, 0.22, 0.14)
-			
+			var edge_instance := create_tile_edge()
+			tile_body.add_child(edge_instance)
+
+			var mesh_instance := create_tile_slab(grid_pos)
+			var material := mesh_instance.material_override as StandardMaterial3D
 			mesh_instance.material_override = material
 			tile_body.add_child(mesh_instance)
 			tile_bodies[grid_pos] = tile_body
@@ -58,6 +55,38 @@ func create_board() -> void:
 			tile_count += 1
 	
 	print("UTWORZONO KAFELKOW: ", tile_count)
+
+func create_tile_slab(grid_pos: Vector2i) -> MeshInstance3D:
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = "StoneSlab"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(tile_size * 0.88, 0.18, tile_size * 0.88)
+	mesh_instance.mesh = mesh
+	mesh_instance.position = Vector3(0.0, 0.04, 0.0)
+	mesh_instance.material_override = create_stone_material(get_tile_stone_color(grid_pos))
+	return mesh_instance
+
+func create_tile_edge() -> MeshInstance3D:
+	var edge_instance := MeshInstance3D.new()
+	edge_instance.name = "SlabEdge"
+	var edge_mesh := BoxMesh.new()
+	edge_mesh.size = Vector3(tile_size * 0.96, 0.16, tile_size * 0.96)
+	edge_instance.mesh = edge_mesh
+	edge_instance.position = Vector3(0.0, -0.04, 0.0)
+	edge_instance.material_override = create_stone_material(slab_edge_color)
+	return edge_instance
+
+func get_tile_stone_color(grid_pos: Vector2i) -> Color:
+	var color := stone_light_color if (grid_pos.x + grid_pos.y) % 2 == 0 else stone_dark_color
+	if grid_pos.y >= height / 2:
+		return color.lerp(player_side_tint, 0.18)
+	return color.lerp(enemy_side_tint, 0.16)
+
+func create_stone_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.82
+	return material
 
 func _on_tile_input_event(
 	_camera: Camera3D,
@@ -111,6 +140,6 @@ func highlight_tiles(tile_positions: Array[Vector2i]) -> void:
 
 func get_tile_mesh_instance(tile_body: Node) -> MeshInstance3D:
 	for child in tile_body.get_children():
-		if child is MeshInstance3D:
+		if child is MeshInstance3D and child.name == "StoneSlab":
 			return child
 	return null
