@@ -70,6 +70,8 @@ func test_initial_state() -> void:
 	assert_eq(game.player_xp, 0, "Player should start with 0 XP")
 	assert_eq(game.max_player_units, 2, "Level 1 should allow 2 deployed units")
 	assert_eq(game.player_level_label.text, "Level: 1 (0/2 XP)", "Player level label should show initial XP progress")
+	assert_true(game.synergy_label != null, "SynergyLabel should exist")
+	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
 
 func test_buy_xp() -> void:
 	var game = await load_game()
@@ -153,6 +155,7 @@ func test_faction_bonuses() -> void:
 	assert_true(roman_unit != null, "Roman unit should be spawned for faction bonus test")
 	var roman_base_hp = game.unit_database.get_unit_data("roman_legionary")["max_hp"]
 	assert_float_eq(roman_unit.max_hp, roman_base_hp * 1.2, "Roman synergy should increase Roman max HP")
+	assert_true("Romans" in game.synergy_label.text, "SynergyLabel should mention Romans when Roman synergy is active")
 
 	game.clear_units()
 	await process_frame

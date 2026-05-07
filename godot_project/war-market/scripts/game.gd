@@ -14,6 +14,7 @@ extends Node3D
 @onready var buy_xp_button: Button = $UI/HudContainer/BuyXPButton
 @onready var sell_unit_button: Button = $UI/HudContainer/SellUnitButton
 @onready var unit_cap_label: Label = $UI/HudContainer/UnitCapLabel
+@onready var synergy_label: Label = $UI/HudContainer/SynergyLabel
 @onready var player_health_label: Label = $UI/HudContainer/PlayerHealthLabel
 @onready var bench_label: Label = $UI/BottomContainer/BenchPanel/BenchLabel
 @onready var bench_items: HBoxContainer = $UI/BottomContainer/BenchPanel/BenchItems
@@ -151,6 +152,7 @@ func _ready() -> void:
 	roll_shop_offers()
 	populate_shop()
 	update_unit_cap_label()
+	update_synergy_label()
 	update_bench_ui()
 	round_label.text = "Round: %d" % round_number
 
@@ -380,6 +382,7 @@ func refresh_player_unit_bonuses() -> void:
 
 	if not active_bonuses.is_empty():
 		print("Active faction bonuses: ", active_bonuses.keys())
+	update_synergy_label()
 
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
@@ -624,6 +627,7 @@ func restart_round() -> void:
 	update_gold_label()
 	round_label.text = "Round: %d" % round_number
 	update_unit_cap_label()
+	update_synergy_label()
 	roll_shop_offers()
 	populate_shop()
 	spawn_player_roster()
@@ -715,6 +719,7 @@ func reset_game() -> void:
 	update_player_health_label()
 	update_player_level_label()
 	update_unit_cap_label()
+	update_synergy_label()
 	update_bench_ui()
 	round_label.text = "Round: %d" % round_number
 	
@@ -1023,6 +1028,24 @@ func update_gold_label() -> void:
 
 func update_unit_cap_label() -> void:
 	unit_cap_label.text = "Units: %d / %d" % [player_roster.size(), max_player_units]
+
+func update_synergy_label() -> void:
+	var counts = get_player_faction_counts()
+	var active_bonuses = get_active_faction_bonuses()
+	if active_bonuses.is_empty():
+		synergy_label.text = "Synergies: None"
+		return
+
+	var lines: Array[String] = ["Synergies:"]
+	if active_bonuses.has("Romans"):
+		lines.append("Romans %d/2: +HP" % counts.get("Romans", 0))
+	if active_bonuses.has("Vikings"):
+		lines.append("Vikings %d/2: +DMG" % counts.get("Vikings", 0))
+	if active_bonuses.has("Mongols"):
+		lines.append("Mongols %d/2: +RNG" % counts.get("Mongols", 0))
+	if active_bonuses.has("Slavs"):
+		lines.append("Slavs %d/2: +AS" % counts.get("Slavs", 0))
+	synergy_label.text = "\n".join(lines)
 
 func update_bench_ui() -> void:
 	bench_label.text = "Bench: %d / %d" % [bench_units.size(), max_bench_units]
