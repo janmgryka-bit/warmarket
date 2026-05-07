@@ -113,10 +113,28 @@ func take_damage(amount: float) -> void:
 	current_hp -= amount
 	current_hp = max(current_hp, 0.0)
 	update_health_bar()
+	show_damage_number(amount)
 	print(unit_name, " HP: ", current_hp)
 	
 	if current_hp <= 0:
 		die()
+
+func show_damage_number(amount: float) -> void:
+	var label := Label3D.new()
+	label.text = "-%d" % int(round(amount))
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.modulate = Color(1.0, 0.2, 0.1, 1.0)
+	label.font_size = 42
+	label.position = Vector3(0.0, 2.25, 0.0)
+	add_child(label)
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position", label.position + Vector3(0.0, 0.8, 0.0), 0.8)
+	tween.tween_property(label, "modulate:a", 0.0, 0.8)
+	tween.set_parallel(false)
+	tween.tween_callback(label.queue_free)
 
 func die() -> void:
 	print(unit_name, " died")
