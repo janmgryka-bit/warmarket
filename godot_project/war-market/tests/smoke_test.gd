@@ -29,8 +29,10 @@ func _init() -> void:
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
 	await run_test("Bench sell", Callable(self, "test_bench_sell"))
 	await run_test("Bench merge to 2-star", Callable(self, "test_bench_merge_to_two_star"))
+	await run_test("Bench merge to 3-star", Callable(self, "test_bench_merge_to_three_star"))
 	await run_test("2-star deployed unit", Callable(self, "test_two_star_deployed_unit"))
 	await run_test("Deployed merge to 2-star", Callable(self, "test_deployed_merge_to_two_star"))
+	await run_test("Deployed merge to 3-star", Callable(self, "test_deployed_merge_to_three_star"))
 	await run_test("Bench deploy", Callable(self, "test_bench_deploy"))
 	await run_test("Invalid bench deploy", Callable(self, "test_invalid_bench_deploy"))
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
@@ -123,6 +125,22 @@ func test_bench_merge_to_two_star() -> void:
 	var base_price = game.unit_database.get_unit_data(unit_id)["base_price"]
 	assert_eq(game.player_gold, gold_before + base_price * 3, "Selling a 2-star bench unit should refund 3x base price")
 
+func test_bench_merge_to_three_star() -> void:
+	var game = await load_game()
+	var unit_id = "roman_spearman"
+	for i in range(3):
+		game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	game.try_merge_bench_units()
+	assert_eq(game.bench_units.size(), 1, "Bench should merge three identical 2-star units into one entry")
+	assert_eq(game.bench_units[0].get("unit_id", ""), unit_id, "3-star merged unit should preserve unit id")
+	assert_eq(game.bench_units[0].get("star_level", 1), 3, "Merged unit should be 3-star")
+	assert_eq(game.get_bench_unit_display_name(game.bench_units[0]), "Roman Spearman ★★★", "Bench UI text should show three stars")
+	var gold_before = game.player_gold
+	game.selected_bench_index = 0
+	game._on_sell_unit_button_pressed()
+	var base_price = game.unit_database.get_unit_data(unit_id)["base_price"]
+	assert_eq(game.player_gold, gold_before + base_price * 9, "Selling a 3-star bench unit should refund 9x base price")
+
 func test_two_star_deployed_unit() -> void:
 	var game = await load_game()
 	var unit_id = "roman_spearman"
@@ -173,6 +191,39 @@ func test_deployed_merge_to_two_star() -> void:
 	var respawned_unit = find_player_unit_by_roster_id(roster_id)
 	assert_true(respawned_unit != null, "Merged roster unit should respawn after next round")
 	assert_eq(respawned_unit.star_level, 2, "Respawned roster unit should remain 2-star")
+
+func test_deployed_merge_to_three_star() -> void:
+	var game = await load_game()
+	var unit_id = "roman_spearman"
+	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	var tile = find_empty_player_tile(game)
+	assert_true(tile != null, "No empty player tile available for deployed 3-star merge setup")
+	game.selected_bench_index = 0
+	var deployed = game.try_deploy_bench_unit(tile)
+	assert_true(deployed, "Deploying the 2-star merge base should succeed")
+
+	var roster_id = game.player_roster[game.player_roster.size() - 1]["roster_id"]
+	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
+	game.try_merge_bench_units()
+
+	assert_eq(game.bench_units.size(), 0, "3-star deployed merge should remove two matching 2-star bench copies")
+	var roster_entry = find_roster_entry(game, roster_id)
+	assert_true(roster_entry != null, "3-star merged roster entry should still exist")
+	assert_eq(roster_entry.get("star_level", 1), 3, "Merged roster entry should be 3-star")
+	var spawned_unit = find_player_unit_by_roster_id(roster_id)
+	assert_true(spawned_unit != null, "3-star merged deployed unit should still be spawned")
+	assert_eq(spawned_unit.star_level, 3, "Spawned deployed unit should update to 3-star")
+	assert_eq(spawned_unit.star_label.text, "★★★", "Deployed StarLabel should show three stars")
+	var base_hp = game.unit_database.get_unit_data(unit_id)["max_hp"]
+	assert_eq(spawned_unit.max_hp, base_hp * 3.2, "3-star unit should use 3.2x HP scaling")
+
+	game.restart_round()
+	await process_frame
+	var respawned_unit = find_player_unit_by_roster_id(roster_id)
+	assert_true(respawned_unit != null, "3-star roster unit should respawn after next round")
+	assert_eq(respawned_unit.star_level, 3, "Respawned roster unit should remain 3-star")
+	assert_eq(respawned_unit.star_label.text, "★★★", "Respawned StarLabel should show three stars")
 
 func test_bench_deploy() -> void:
 	var game = await load_game()

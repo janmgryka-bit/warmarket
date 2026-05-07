@@ -30,3 +30,8 @@ mesh = SubResource("BoxMesh_a2g4q")
 [node name="HpFill" type="MeshInstance3D" parent="HealthBar" unique_id=1305624465]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -0.01)
 mesh = SubResource("BoxMesh_pyybm")
+
+[node name="StarLabel" type="Label3D" parent="." unique_id=211111111]
+text = "★"
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+billboard = 1

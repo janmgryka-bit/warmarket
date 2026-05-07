@@ -19,11 +19,13 @@ var target: CharacterBody3D = null
 var attack_timer: float = 0.0
 var battle_active: bool = false
 var is_selected: bool = false
+var star_level: int = 1
 
 @onready var body_mesh: MeshInstance3D = $MeshInstance3D
 @onready var health_bar: Node3D = $HealthBar
 @onready var hp_back: MeshInstance3D = $HealthBar/HpBack
 @onready var hp_fill: MeshInstance3D = $HealthBar/HpFill
+@onready var star_label: Label3D = $StarLabel
 
 func _ready() -> void:
 	current_hp = max_hp
@@ -34,6 +36,7 @@ func _ready() -> void:
 	apply_role_shape()
 	setup_health_bar()
 	update_health_bar()
+	set_star_level(star_level)
 	print(unit_name, " ready. HP: ", current_hp)
 
 func _physics_process(delta: float) -> void:
@@ -185,3 +188,14 @@ func apply_role_shape() -> void:
 			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
 		_:
 			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
+
+func set_star_level(value: int) -> void:
+	star_level = value
+	if star_label != null:
+		match star_level:
+			1:
+				star_label.text = "★"
+			2:
+				star_label.text = "★★"
+			_:
+				star_label.text = "★".repeat(star_level)

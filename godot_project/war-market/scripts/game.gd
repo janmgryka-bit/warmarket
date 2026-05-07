@@ -205,6 +205,8 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 	unit.attack_cooldown = data["attack_cooldown"]
 	unit.move_speed = data["move_speed"]
 	unit.attack_range = data["attack_range"]
+	unit.set_meta("base_max_hp", unit.max_hp)
+	unit.set_meta("base_damage", unit.damage)
 	
 	apply_star_level_to_unit(unit, star_level)
 	unit.current_hp = unit.max_hp
@@ -223,12 +225,20 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
 	if unit.has_method("set_star_level"):
 		unit.set_star_level(star_level)
+	var base_max_hp = unit.get_meta("base_max_hp", unit.max_hp)
+	var base_damage = unit.get_meta("base_damage", unit.damage)
 	match star_level:
 		1:
+			unit.max_hp = base_max_hp
+			unit.damage = base_damage
 			return
 		2:
-			unit.max_hp = unit.max_hp * 1.8
-			unit.damage = unit.damage * 1.8
+			unit.max_hp = base_max_hp * 1.8
+			unit.damage = base_damage * 1.8
+			return
+		3:
+			unit.max_hp = base_max_hp * 3.2
+			unit.damage = base_damage * 3.2
 			return
 		_:
 			return
@@ -638,22 +648,27 @@ func try_merge_bench_units() -> void:
 			var entry = bench_units[i]
 			var unit_id = entry.get("unit_id", "")
 			var star_level = entry.get("star_level", 1)
-			if star_level != 1:
+			if star_level >= 3:
 				continue
-			if not merge_sets.has(unit_id):
-				merge_sets[unit_id] = []
-			merge_sets[unit_id].append(i)
+			var merge_key = "%s:%d" % [unit_id, star_level]
+			if not merge_sets.has(merge_key):
+				merge_sets[merge_key] = {"unit_id": unit_id, "star_level": star_level, "indices": []}
+			merge_sets[merge_key]["indices"].append(i)
 
 		var found_merge = false
-		for unit_id in merge_sets.keys():
-			var indices = merge_sets[unit_id]
+		for merge_key in merge_sets.keys():
+			var merge_set = merge_sets[merge_key]
+			var indices = merge_set["indices"]
 			if indices.size() >= 3:
 				indices.sort()
 				for j in range(indices.size() - 1, -1, -1):
 					bench_units.remove_at(indices[j])
-				bench_units.append({"unit_id": unit_id, "star_level": 2})
+				var unit_id = merge_set["unit_id"]
+				var star_level = merge_set["star_level"]
+				var upgraded_star = star_level + 1
+				bench_units.append({"unit_id": unit_id, "star_level": upgraded_star})
 				var data: Dictionary = unit_database.get_unit_data(unit_id)
-				print("Merged 3x %s into 2-star" % data.get("name", unit_id))
+				print("Merged 3x %s into %d-star" % [data.get("name", unit_id), upgraded_star])
 				found_merge = true
 				merged_any = true
 				break
@@ -670,13 +685,13 @@ func try_merge_deployed_unit_with_bench() -> bool:
 		var roster_entry = player_roster[roster_index]
 		var unit_id = roster_entry.get("unit_id", "")
 		var star_level = roster_entry.get("star_level", 1)
-		if unit_id == "" or star_level != 1:
+		if unit_id == "" or star_level >= 3:
 			continue
 
 		var bench_indices: Array[int] = []
 		for bench_index in range(bench_units.size()):
 			var bench_entry = bench_units[bench_index]
-			if bench_entry.get("unit_id", "") == unit_id and bench_entry.get("star_level", 1) == 1:
+			if bench_entry.get("unit_id", "") == unit_id and bench_entry.get("star_level", 1) == star_level:
 				bench_indices.append(bench_index)
 				if bench_indices.size() == 2:
 					break
@@ -687,15 +702,17 @@ func try_merge_deployed_unit_with_bench() -> bool:
 		for i in range(bench_indices.size() - 1, -1, -1):
 			bench_units.remove_at(bench_indices[i])
 
-		player_roster[roster_index]["star_level"] = 2
+		var upgraded_star = star_level + 1
+		player_roster[roster_index]["star_level"] = upgraded_star
 		var roster_id = roster_entry.get("roster_id", -1)
 		var unit = find_player_unit_by_roster_id(roster_id)
 		if unit:
-			apply_star_level_to_unit(unit, 2)
-			unit.set_meta("star_level", 2)
+			apply_star_level_to_unit(unit, upgraded_star)
+			unit.current_hp = unit.max_hp
+			unit.set_meta("star_level", upgraded_star)
 
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		print("Merged deployed %s into 2-star" % data.get("name", unit_id))
+		print("Merged deployed %s into %d-star" % [data.get("name", unit_id), upgraded_star])
 		return true
 
 	return false
@@ -741,9 +758,7 @@ func _on_sell_unit_button_pressed() -> void:
 			print("Bench unit data not found for ", bench_unit_id)
 			return
 		
-		var bench_refund = bench_data["base_price"]
-		if bench_star == 2:
-			bench_refund *= 3
+		var bench_refund = bench_data["base_price"] * get_star_refund_multiplier(bench_star)
 		player_gold += bench_refund
 		bench_units.remove_at(selected_bench_index)
 		selected_bench_index = -1
@@ -788,9 +803,7 @@ func _on_sell_unit_button_pressed() -> void:
 		print("Unit data not found for unit_id ", deployed_unit_id)
 		return
 	
-	var deployed_refund = deployed_data["base_price"]
-	if deployed_star == 2:
-		deployed_refund *= 3
+	var deployed_refund = deployed_data["base_price"] * get_star_refund_multiplier(deployed_star)
 	
 	player_gold += deployed_refund
 	player_roster.remove_at(roster_index)
@@ -801,6 +814,15 @@ func _on_sell_unit_button_pressed() -> void:
 	update_unit_cap_label()
 	populate_shop()
 	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
+
+func get_star_refund_multiplier(star_level: int) -> int:
+	match star_level:
+		2:
+			return 3
+		3:
+			return 9
+		_:
+			return 1
 
 # UI
 func update_gold_label() -> void:
@@ -827,13 +849,7 @@ func get_bench_unit_display_name(entry: Dictionary) -> String:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	var star_level = entry.get("star_level", 1)
 	var name = data.get("name", unit_id)
-	match star_level:
-		1:
-			return "%s ★" % name
-		2:
-			return "%s ★★" % name
-		_:
-			return name
+	return "%s %s" % [name, "★".repeat(clamp(star_level, 1, 3))]
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():
