@@ -45,6 +45,7 @@ func _init() -> void:
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
+	await run_test("Battle summary", Callable(self, "test_battle_summary"))
 	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
@@ -523,6 +524,16 @@ func test_game_over_after_loss() -> void:
 	assert_eq(game.player_health, 0, "Player health should be clamped to zero after loss")
 	assert_true(game.game_over, "Game over should be true after health reaches zero")
 	assert_eq(game.round_result_label.text, "GAME OVER", "Round result label should show GAME OVER")
+
+func test_battle_summary() -> void:
+	var game = await load_game()
+	game.end_round("PLAYER WINS")
+	var summary = game.last_battle_summary
+	assert_true(not summary.is_empty(), "Battle summary should be recorded after round end")
+	assert_eq(summary["result"], "PLAYER WINS", "Battle summary should record result")
+	assert_true(summary.has("player_army_snapshot"), "Battle summary should include player army snapshot")
+	assert_true(summary.has("opponent_source"), "Battle summary should include opponent source")
+	assert_true(typeof(summary["surviving_units"]) == TYPE_ARRAY, "Battle summary surviving units should be an array")
 
 func test_victory_after_round_ten() -> void:
 	var game = await load_game()

@@ -37,6 +37,7 @@ var battle_speed_values: Array[float] = [1.0, 2.0, 4.0]
 var battle_speed_index: int = 0
 var event_log: Array[String] = []
 var max_event_log_entries: int = 8
+var last_battle_summary: Dictionary = {}
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -251,6 +252,30 @@ func create_player_army_snapshot() -> Array[Dictionary]:
 			"star_level": entry.get("star_level", 1)
 		})
 	return snapshot
+
+func create_spawned_opponent_army_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if not is_instance_valid(unit) or unit.team_id != 1:
+			continue
+		snapshot.append(create_army_snapshot_entry_from_unit(unit))
+	return snapshot
+
+func create_army_snapshot_entry_from_unit(unit: CharacterBody3D) -> Dictionary:
+	return {
+		"unit_id": String(unit.name),
+		"grid_pos": unit.grid_position,
+		"star_level": get_unit_star_level(unit)
+	}
+
+func get_unit_star_level(unit: CharacterBody3D) -> int:
+	if unit.has_meta("star_level"):
+		return unit.get_meta("star_level")
+	var star_level = unit.get("star_level")
+	if star_level == null:
+		return 1
+	return star_level
 
 func mirror_grid_pos_for_opponent(grid_pos: Vector2i) -> Vector2i:
 	return Vector2i(grid_pos.x, 7 - grid_pos.y)
@@ -768,7 +793,41 @@ func check_round_end() -> void:
 	else:
 		end_round("DRAW")
 
+func create_battle_summary(result_text: String) -> Dictionary:
+	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
+	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
+	return {
+		"round_number": round_number,
+		"result": result_text,
+		"player_health": player_health,
+		"player_level": player_level,
+		"player_gold": player_gold,
+		"player_army_snapshot": create_player_army_snapshot(),
+		"opponent_source": opponent_source,
+		"opponent_army_snapshot": opponent_snapshot,
+		"surviving_units": create_surviving_units_snapshot()
+	}
+
+func create_surviving_units_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if not is_instance_valid(unit) or unit.current_hp <= 0:
+			continue
+		snapshot.append({
+			"unit_id": String(unit.name),
+			"team_id": unit.team_id,
+			"star_level": get_unit_star_level(unit),
+			"current_hp": unit.current_hp,
+			"max_hp": unit.max_hp,
+			"grid_pos": unit.grid_position
+		})
+	return snapshot
+
 func end_round(result_text: String) -> void:
+	last_battle_summary = create_battle_summary(result_text)
+	add_event_log("Battle summary recorded")
+
 	if result_text == "PLAYER WINS" and round_number >= max_rounds:
 		trigger_victory()
 		return
@@ -923,6 +982,7 @@ func reset_game() -> void:
 	reset_battle_speed()
 	update_max_player_units()
 	event_log.clear()
+	last_battle_summary.clear()
 	use_snapshot_opponent = false
 	opponent_army_snapshot.clear()
 	
