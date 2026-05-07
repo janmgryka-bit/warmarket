@@ -35,6 +35,7 @@ func _init() -> void:
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
 	await run_test("Role bonuses", Callable(self, "test_role_bonuses"))
 	await run_test("Unit details panel", Callable(self, "test_unit_details_panel"))
+	await run_test("Unit stats summary", Callable(self, "test_unit_stats_summary"))
 	await run_test("Board tile highlights", Callable(self, "test_board_tile_highlights"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
@@ -416,6 +417,20 @@ func test_unit_details_panel() -> void:
 	assert_true(player_unit.unit_name in game.unit_details_label.text, "Unit details should include selected unit name")
 	game.clear_unit_selection()
 	assert_true(not game.unit_details_panel.visible, "Unit details panel should hide after clearing selection")
+
+func test_unit_stats_summary() -> void:
+	var game = await load_game()
+	var player_unit = find_deployed_player_unit()
+	assert_true(player_unit != null, "No deployed player unit available for stats summary test")
+
+	var summary: Dictionary = game.get_unit_effective_stats_summary(player_unit)
+	assert_true(summary.has("unit_id"), "Stats summary should include unit_id")
+	assert_true(str(summary["unit_id"]) != "", "Stats summary unit_id should not be empty")
+	assert_true(summary["max_hp"] > 0, "Stats summary should include positive max_hp")
+	assert_true(summary["damage"] > 0, "Stats summary should include positive damage")
+
+	var army_summary: Array[Dictionary] = game.get_player_army_stats_summary()
+	assert_true(army_summary.size() > 0, "Player army stats summary should include initial spawned units")
 
 func test_board_tile_highlights() -> void:
 	var game = await load_game()

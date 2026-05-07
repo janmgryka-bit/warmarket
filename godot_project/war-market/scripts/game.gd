@@ -635,6 +635,51 @@ func get_unit_id_for_unit(unit: CharacterBody3D) -> String:
 		return roster_entry.get("unit_id", unit.name)
 	return unit.name
 
+func get_unit_effective_stats_summary(unit: CharacterBody3D) -> Dictionary:
+	if unit == null or not is_instance_valid(unit):
+		return {}
+
+	var unit_id = get_unit_id_for_unit(unit)
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	var roster_entry = get_roster_entry_for_unit(unit)
+	var star_level = unit.star_level
+	if unit.has_meta("star_level"):
+		star_level = unit.get_meta("star_level")
+	if roster_entry != null:
+		star_level = roster_entry.get("star_level", star_level)
+
+	return {
+		"unit_id": unit_id,
+		"unit_name": data.get("name", unit.unit_name),
+		"team_id": unit.team_id,
+		"star_level": star_level,
+		"current_hp": unit.current_hp,
+		"max_hp": unit.max_hp,
+		"damage": unit.damage,
+		"attack_range": unit.attack_range,
+		"attack_cooldown": unit.attack_cooldown,
+		"faction": data.get("faction", ""),
+		"role": data.get("role", unit.role),
+		"tier": data.get("tier", 1),
+		"item_ids": roster_entry.get("item_ids", []).duplicate() if roster_entry != null else []
+	}
+
+func get_player_army_stats_summary() -> Array[Dictionary]:
+	var summaries: Array[Dictionary] = []
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if not is_instance_valid(unit) or unit.team_id != 0:
+			continue
+		var summary := get_unit_effective_stats_summary(unit)
+		if not summary.is_empty():
+			summaries.append(summary)
+	return summaries
+
+func print_player_army_stats_summary() -> void:
+	print("Player Army Stats Summary:")
+	for summary in get_player_army_stats_summary():
+		print(summary)
+
 func update_unit_details_panel() -> void:
 	if selected_unit == null or not is_instance_valid(selected_unit):
 		unit_details_panel.visible = false
