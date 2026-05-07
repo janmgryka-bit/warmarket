@@ -187,6 +187,39 @@ func style_button(button: Button) -> void:
 	button.add_theme_color_override("font_pressed_color", ui_gold_color)
 	button.add_theme_color_override("font_disabled_color", ui_muted_text_color)
 
+func style_unit_card_button(button: Button, faction: String, disabled_card: bool = false) -> void:
+	var faction_color := get_faction_card_color(faction)
+	var bg_color := ui_stone_color.lerp(faction_color, 0.20)
+	var hover_color := ui_stone_hover_color.lerp(faction_color, 0.24)
+	if disabled_card:
+		bg_color = Color(0.08, 0.08, 0.08, 0.78)
+		hover_color = bg_color
+	button.add_theme_stylebox_override("normal", create_ui_stylebox(bg_color, faction_color.lerp(ui_brass_color, 0.35), 2, 4))
+	button.add_theme_stylebox_override("hover", create_ui_stylebox(hover_color, ui_gold_color, 2, 4))
+	button.add_theme_stylebox_override("pressed", create_ui_stylebox(Color(0.12, 0.10, 0.08, 0.98), ui_gold_color, 2, 4))
+	button.add_theme_stylebox_override("disabled", create_ui_stylebox(bg_color, Color(0.26, 0.23, 0.18, 0.85), 1, 4))
+	button.add_theme_color_override("font_color", ui_light_text_color)
+	button.add_theme_color_override("font_hover_color", ui_gold_color)
+	button.add_theme_color_override("font_pressed_color", ui_gold_color)
+	button.add_theme_color_override("font_disabled_color", ui_muted_text_color if disabled_card else ui_light_text_color)
+
+func style_sold_card_button(button: Button) -> void:
+	button.add_theme_stylebox_override("disabled", create_ui_stylebox(Color(0.11, 0.09, 0.08, 0.92), Color(0.45, 0.32, 0.16, 0.9), 2, 4))
+	button.add_theme_color_override("font_disabled_color", Color(0.78, 0.52, 0.28))
+
+func get_faction_card_color(faction: String) -> Color:
+	match faction:
+		"Romans":
+			return Color(0.62, 0.12, 0.10)
+		"Vikings":
+			return Color(0.20, 0.30, 0.42)
+		"Slavs":
+			return Color(0.26, 0.42, 0.22)
+		"Mongols":
+			return Color(0.70, 0.50, 0.22)
+		_:
+			return ui_brass_color
+
 func create_ui_stylebox(bg_color: Color, border_color: Color, border_width: int, corner_radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg_color
@@ -1388,14 +1421,14 @@ func populate_shop() -> void:
 		
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(180, 80)
-		style_button(card)
 		
 		if i in sold_shop_offer_indices:
-			card.text = "SOLD"
+			card.text = "SOLD\nRecruit gone"
 			card.disabled = true
+			style_sold_card_button(card)
 		else:
 			var can_afford = player_gold >= data["base_price"]
-			card.text = "%s\n%s / %s\nTier %d\nCost: %dg" % [
+			card.text = "%s\n%s  %s  T%d\n%dg Recruit" % [
 				data["name"],
 				data["faction"],
 				data["role"],
@@ -1403,6 +1436,7 @@ func populate_shop() -> void:
 				data["base_price"]
 			]
 			card.disabled = not can_afford
+			style_unit_card_button(card, data.get("faction", ""), not can_afford)
 			card.pressed.connect(_on_shop_card_pressed.bind(unit_id, i))
 		
 		shop_items.add_child(card)
@@ -1819,7 +1853,9 @@ func update_bench_ui() -> void:
 		var button = Button.new()
 		button.custom_minimum_size = Vector2(180, 55)
 		button.text = get_bench_unit_display_name(entry)
-		style_button(button)
+		var unit_id = entry.get("unit_id", "")
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		style_unit_card_button(button, data.get("faction", ""))
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
 
@@ -1828,7 +1864,13 @@ func get_bench_unit_display_name(entry: Dictionary) -> String:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	var star_level = entry.get("star_level", 1)
 	var unit_display_name = data.get("name", unit_id)
-	return "%s %s\nTier %d" % [unit_display_name, "★".repeat(clamp(star_level, 1, 3)), data.get("tier", 1)]
+	return "%s  %s\n%s  %s  T%d" % [
+		"★".repeat(clamp(star_level, 1, 3)),
+		unit_display_name,
+		data.get("faction", ""),
+		data.get("role", ""),
+		data.get("tier", 1)
+	]
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():
