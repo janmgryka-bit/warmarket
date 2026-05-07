@@ -72,6 +72,8 @@ var starting_player_health: int = 20
 var player_health: int = starting_player_health
 var loss_damage: int = 4
 var game_over: bool = false
+var max_rounds: int = 10
+var victory: bool = false
 var shop_unit_ids: Array[String] = [
 	"roman_legionary",
 	"roman_archer",
@@ -166,7 +168,7 @@ func _ready() -> void:
 	update_unit_cap_label()
 	update_synergy_label()
 	update_bench_ui()
-	round_label.text = "Round: %d" % round_number
+	update_round_label()
 
 # Frame Updates
 func _process(_delta: float) -> void:
@@ -674,13 +676,13 @@ func get_first_player_unit() -> CharacterBody3D:
 # Battle
 func _on_start_battle_button_pressed() -> void:
 	print("BUTTON CLICKED")
-	if game_over:
-		print("Cannot start battle after game over")
+	if game_over or victory:
+		print("Cannot start battle after run has ended")
 		return
 	start_battle()
 
 func start_battle() -> void:
-	if battle_started:
+	if not is_preparation_phase():
 		return
 	
 	battle_started = true
@@ -697,7 +699,7 @@ func start_battle() -> void:
 		unit.start_battle()
 
 func is_preparation_phase() -> bool:
-	return not battle_started and not round_ended and not game_over
+	return not battle_started and not round_ended and not game_over and not victory
 
 func check_round_end() -> void:
 	var player_alive := false
@@ -728,6 +730,10 @@ func check_round_end() -> void:
 		end_round("DRAW")
 
 func end_round(result_text: String) -> void:
+	if result_text == "PLAYER WINS" and round_number >= max_rounds:
+		trigger_victory()
+		return
+
 	round_ended = true
 	battle_started = false
 	
@@ -750,14 +756,14 @@ func end_round(result_text: String) -> void:
 
 func _on_restart_round_button_pressed() -> void:
 	print("RESTART CLICKED")
-	if game_over:
+	if game_over or victory:
 		reset_game()
 	else:
 		restart_round()
 
 func restart_round() -> void:
-	if game_over:
-		print("Cannot restart round after game over")
+	if game_over or victory:
+		print("Cannot restart round after run has ended")
 		return
 	clear_units()
 	
@@ -782,7 +788,7 @@ func restart_round() -> void:
 	last_round_result = ""
 	
 	update_gold_label()
-	round_label.text = "Round: %d" % round_number
+	update_round_label()
 	update_unit_cap_label()
 	update_synergy_label()
 	roll_shop_offers()
@@ -810,6 +816,9 @@ func clear_units() -> void:
 
 func update_player_health_label() -> void:
 	player_health_label.text = "HP: %d" % player_health
+
+func update_round_label() -> void:
+	round_label.text = "Round: %d / %d" % [round_number, max_rounds]
 
 func get_xp_required_for_next_level() -> int:
 	if player_level >= max_player_level:
@@ -841,6 +850,22 @@ func trigger_game_over() -> void:
 
 	add_event_log("Game over")
 
+func trigger_victory() -> void:
+	victory = true
+	battle_started = false
+	round_ended = true
+	round_result_label.text = "VICTORY"
+	restart_button.visible = true
+	restart_button.text = "New Run"
+	clear_all_selection()
+
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if is_instance_valid(unit):
+			unit.stop_battle()
+
+	add_event_log("VICTORY")
+
 func reset_game() -> void:
 	print("RESETTING GAME FOR NEW RUN")
 	clear_units()
@@ -849,6 +874,7 @@ func reset_game() -> void:
 	battle_started = false
 	round_ended = false
 	game_over = false
+	victory = false
 	round_number = 1
 	last_round_result = ""
 	player_gold = starting_gold
@@ -880,7 +906,7 @@ func reset_game() -> void:
 	update_unit_cap_label()
 	update_synergy_label()
 	update_bench_ui()
-	round_label.text = "Round: %d" % round_number
+	update_round_label()
 	
 	# Roll fresh shop and populate
 	roll_shop_offers()

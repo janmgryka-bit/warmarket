@@ -45,6 +45,7 @@ func _init() -> void:
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
+	await run_test("Victory after round 10", Callable(self, "test_victory_after_round_ten"))
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
 	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
@@ -520,6 +521,21 @@ func test_game_over_after_loss() -> void:
 	assert_eq(game.player_health, 0, "Player health should be clamped to zero after loss")
 	assert_true(game.game_over, "Game over should be true after health reaches zero")
 	assert_eq(game.round_result_label.text, "GAME OVER", "Round result label should show GAME OVER")
+
+func test_victory_after_round_ten() -> void:
+	var game = await load_game()
+	game.round_number = game.max_rounds
+	game.end_round("PLAYER WINS")
+	assert_true(game.victory, "Victory should be true after winning max round")
+	assert_eq(game.round_result_label.text, "VICTORY", "Round result label should show VICTORY")
+	assert_true(not game.is_preparation_phase(), "Preparation phase should be blocked during victory")
+	assert_true(game.restart_button.visible, "Restart button should be visible after victory")
+	assert_eq(game.restart_button.text, "New Run", "Restart button should offer new run after victory")
+	assert_true("VICTORY" in game.event_log_label.text, "Event log should mention victory")
+
+	game.reset_game()
+	assert_true(not game.victory, "Victory should reset for new run")
+	assert_eq(game.round_number, 1, "Round number should reset to 1 after victory reset")
 
 func test_reset_game_new_run() -> void:
 	var game = await load_game()
