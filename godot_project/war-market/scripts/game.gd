@@ -859,14 +859,14 @@ func create_surviving_units_snapshot() -> Array[Dictionary]:
 		})
 	return snapshot
 
-func get_round_loss_damage(round_number: int) -> int:
-	if round_number <= 2:
+func get_round_loss_damage(target_round: int) -> int:
+	if target_round <= 2:
 		return 2
-	if round_number <= 4:
+	if target_round <= 4:
 		return 3
-	if round_number <= 6:
+	if target_round <= 6:
 		return 4
-	if round_number <= 8:
+	if target_round <= 8:
 		return 5
 	return 6
 
@@ -1486,8 +1486,8 @@ func get_bench_unit_display_name(entry: Dictionary) -> String:
 	var unit_id = entry.get("unit_id", "")
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	var star_level = entry.get("star_level", 1)
-	var name = data.get("name", unit_id)
-	return "%s %s\nTier %d" % [name, "★".repeat(clamp(star_level, 1, 3)), data.get("tier", 1)]
+	var unit_display_name = data.get("name", unit_id)
+	return "%s %s\nTier %d" % [unit_display_name, "★".repeat(clamp(star_level, 1, 3)), data.get("tier", 1)]
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():
