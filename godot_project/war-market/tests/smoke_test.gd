@@ -102,19 +102,40 @@ func test_buy_xp() -> void:
 
 func test_shop_tier_rolls() -> void:
 	var game = await load_game()
+	var tier_2_unit_ids: Array[String] = [
+		"roman_centurion",
+		"viking_raider",
+		"mongol_horse_archer"
+	]
+	for unit_id in tier_2_unit_ids:
+		var data: Dictionary = game.unit_database.get_unit_data(unit_id)
+		assert_true(not data.is_empty(), unit_id + " should exist in UnitDatabase")
+		assert_eq(data.get("tier", 0), 2, unit_id + " should be tier 2")
+		assert_true(unit_id in game.shop_unit_ids, unit_id + " should be available in the shop pool")
+
 	game.roll_shop_offers()
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should produce the configured offer count")
 	assert_valid_shop_offers(game)
 
 	game.player_level = 6
-	game.roll_shop_offers()
-	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Level 6 shop roll should produce the configured offer count")
-	assert_valid_shop_offers(game)
-
+	var found_tier_2_offer = false
+	var original_level_6_odds = game.shop_tier_odds[6]
 	game.shop_tier_odds[6] = {2: 100}
+	for i in range(5):
+		game.roll_shop_offers()
+		assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Level 6 shop roll should produce the configured offer count")
+		assert_valid_shop_offers(game)
+		for unit_id in game.current_shop_offers:
+			if game.unit_database.get_unit_data(unit_id).get("tier", 0) == 2:
+				found_tier_2_offer = true
+	game.shop_tier_odds[6] = original_level_6_odds
+	assert_true(found_tier_2_offer, "At least one tier 2 unit should appear across level 6 shop rolls")
+
+	game.shop_tier_odds[6] = {3: 100}
 	game.roll_shop_offers()
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should fall back when the rolled tier pool is empty")
 	assert_valid_shop_offers(game)
+	game.shop_tier_odds[6] = original_level_6_odds
 
 func test_reroll() -> void:
 	var game = await load_game()

@@ -77,6 +77,45 @@ const UNITS := {
 		"attack_cooldown": 1.0,
 		"move_speed": 2.0,
 		"attack_range": 4.0
+	},
+	
+	"roman_centurion": {
+		"name": "Roman Centurion",
+		"faction": "Romans",
+		"role": "Tank",
+		"tier": 2,
+		"base_price": 6,
+		"max_hp": 220,
+		"damage": 22,
+		"attack_cooldown": 1.1,
+		"move_speed": 2.0,
+		"attack_range": 1.5
+	},
+	
+	"viking_raider": {
+		"name": "Viking Raider",
+		"faction": "Vikings",
+		"role": "Fighter",
+		"tier": 2,
+		"base_price": 6,
+		"max_hp": 170,
+		"damage": 30,
+		"attack_cooldown": 1.0,
+		"move_speed": 2.3,
+		"attack_range": 1.3
+	},
+	
+	"mongol_horse_archer": {
+		"name": "Mongol Horse Archer",
+		"faction": "Mongols",
+		"role": "Ranged",
+		"tier": 2,
+		"base_price": 6,
+		"max_hp": 120,
+		"damage": 22,
+		"attack_cooldown": 0.95,
+		"move_speed": 2.5,
+		"attack_range": 4.5
 	}
 }
 

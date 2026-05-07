@@ -68,7 +68,10 @@ var shop_unit_ids: Array[String] = [
 	"viking_berserker",
 	"roman_spearman",
 	"viking_axeman",
-	"slav_hunter"
+	"slav_hunter",
+	"roman_centurion",
+	"viking_raider",
+	"mongol_horse_archer"
 ]
 var shop_tier_odds := {
 	1: {1: 100},
