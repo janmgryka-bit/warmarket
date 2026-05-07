@@ -9,6 +9,7 @@ extends Node3D
 @onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
 @onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
 @onready var unit_details_label: Label = $UI/UnitDetailsPanel/UnitDetailsLabel
+@onready var event_log_label: Label = $UI/EventLogPanel/EventLogLabel
 @onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/HudContainer/GoldLabel
 @onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
@@ -33,6 +34,8 @@ var selected_unit: CharacterBody3D = null
 var selected_shop_unit_id: String = ""
 var battle_speed_values: Array[float] = [1.0, 2.0, 4.0]
 var battle_speed_index: int = 0
+var event_log: Array[String] = []
+var max_event_log_entries: int = 8
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -151,6 +154,7 @@ func _ready() -> void:
 	restart_button.visible = false
 	apply_battle_speed()
 	update_battle_speed_ui()
+	add_event_log("Game ready")
 
 	update_gold_label()
 	update_player_health_label()
@@ -171,6 +175,24 @@ func _process(_delta: float) -> void:
 
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
+
+func add_event_log(message: String) -> void:
+	event_log.append(message)
+	while event_log.size() > max_event_log_entries:
+		event_log.remove_at(0)
+	update_event_log_ui()
+	print(message)
+
+func update_event_log_ui() -> void:
+	if event_log_label == null:
+		return
+	if event_log.is_empty():
+		event_log_label.text = "Event Log"
+		return
+	var lines := PackedStringArray()
+	for entry in event_log:
+		lines.append(entry)
+	event_log_label.text = "Event Log\n" + "\n".join(lines)
 
 func apply_battle_speed() -> void:
 	Engine.time_scale = battle_speed_values[battle_speed_index]
@@ -637,7 +659,7 @@ func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 	update_bench_ui()
 	update_unit_cap_label()
 	clear_all_selection()
-	print("Deployed ", data.get("name", unit_id), " from bench at ", grid_pos, " star: ", star_level)
+	add_event_log("Deployed %s %d-star" % [data.get("name", unit_id), star_level])
 	return true
 
 func get_first_player_unit() -> CharacterBody3D:
@@ -668,7 +690,7 @@ func start_battle() -> void:
 	
 	clear_all_selection()
 	
-	print("BATTLE STARTED")
+	add_event_log("Battle started")
 	
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
@@ -709,7 +731,7 @@ func end_round(result_text: String) -> void:
 	round_ended = true
 	battle_started = false
 	
-	print("ROUND ENDED: ", result_text)
+	add_event_log("Round result: %s" % result_text)
 	last_round_result = result_text
 	round_result_label.text = result_text
 	restart_button.visible = true
@@ -750,12 +772,12 @@ func restart_round() -> void:
 	
 	if last_round_result == "PLAYER WINS":
 		player_gold += win_bonus_gold
-		print("Round income: ", round_income, " + win bonus: ", win_bonus_gold)
+		add_event_log("Next round: +%dg income, +%dg win bonus" % [round_income, win_bonus_gold])
 	elif last_round_result == "DRAW":
 		player_gold += draw_bonus_gold
-		print("Round income: ", round_income, " + draw bonus: ", draw_bonus_gold)
+		add_event_log("Next round: +%dg income, +%dg draw bonus" % [round_income, draw_bonus_gold])
 	else:
-		print("Round income: ", round_income, " (no bonus)")
+		add_event_log("Next round: +%dg income" % round_income)
 	
 	last_round_result = ""
 	
@@ -817,7 +839,7 @@ func trigger_game_over() -> void:
 		if is_instance_valid(unit):
 			unit.stop_battle()
 
-	print("GAME OVER")
+	add_event_log("Game over")
 
 func reset_game() -> void:
 	print("RESETTING GAME FOR NEW RUN")
@@ -835,6 +857,7 @@ func reset_game() -> void:
 	player_xp = 0
 	reset_battle_speed()
 	update_max_player_units()
+	event_log.clear()
 	
 	# Clear rosters and bench
 	player_roster.clear()
@@ -865,7 +888,7 @@ func reset_game() -> void:
 	
 	# Spawn starting units
 	spawn_test_units()
-	print("NEW RUN STARTED")
+	add_event_log("New run started")
 
 # Shop
 func populate_shop() -> void:
@@ -927,7 +950,7 @@ func _on_buy_xp_button_pressed() -> void:
 		player_xp -= required_xp
 		player_level += 1
 		update_max_player_units()
-		print("Player leveled up to ", player_level, ". Unit cap: ", max_player_units)
+		add_event_log("Level up: %d (unit cap %d)" % [player_level, max_player_units])
 
 	if player_level >= max_player_level:
 		player_xp = 0
@@ -961,12 +984,12 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	player_gold -= cost
 	bench_units.append({"unit_id": unit_id, "star_level": 1})
 	sold_shop_offer_indices.append(offer_index)
+	add_event_log("Bought %s to bench for %dg" % [data["name"], cost])
 	update_gold_label()
 	try_merge_bench_units()
 	update_bench_ui()
 	populate_shop()
 	clear_all_selection()
-	print("Bought ", data["name"], " to bench for ", cost, " gold")
 
 func try_merge_bench_units() -> void:
 	var merged_any = false
@@ -1000,7 +1023,7 @@ func try_merge_bench_units() -> void:
 				var upgraded_star = star_level + 1
 				bench_units.append({"unit_id": unit_id, "star_level": upgraded_star})
 				var data: Dictionary = unit_database.get_unit_data(unit_id)
-				print("Merged 3x %s into %d-star" % [data.get("name", unit_id), upgraded_star])
+				add_event_log("Merged %s into %d-star" % [data.get("name", unit_id), upgraded_star])
 				found_merge = true
 				merged_any = true
 				break
@@ -1043,7 +1066,7 @@ func try_merge_deployed_unit_with_bench() -> bool:
 			unit.current_hp = unit.max_hp
 
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		print("Merged deployed %s into %d-star" % [data.get("name", unit_id), upgraded_star])
+		add_event_log("Merged deployed %s into %d-star" % [data.get("name", unit_id), upgraded_star])
 		return true
 
 	return false
@@ -1099,7 +1122,7 @@ func _on_sell_unit_button_pressed() -> void:
 		update_bench_ui()
 		populate_shop()
 		clear_all_selection()
-		print("Sold bench ", bench_data["name"], " star: ", bench_star, " for ", bench_refund, " gold")
+		add_event_log("Sold bench %s %d-star for %dg" % [bench_data["name"], bench_star, bench_refund])
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -1147,7 +1170,7 @@ func _on_sell_unit_button_pressed() -> void:
 	update_gold_label()
 	update_unit_cap_label()
 	populate_shop()
-	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
+	add_event_log("Sold %s %d-star for %dg" % [deployed_data["name"], deployed_star, deployed_refund])
 
 func get_star_refund_multiplier(star_level: int) -> int:
 	match star_level:

@@ -25,6 +25,7 @@ func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
+	await run_test("Event log", Callable(self, "test_event_log"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
@@ -75,6 +76,8 @@ func test_initial_state() -> void:
 	assert_eq(game.player_level_label.text, "Level: 1 (0/2 XP)", "Player level label should show initial XP progress")
 	assert_true(game.synergy_label != null, "SynergyLabel should exist")
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
+	assert_true(game.event_log_label != null, "EventLogLabel should exist")
+	assert_true("Game ready" in game.event_log_label.text, "Initial EventLogLabel should show game ready")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -104,6 +107,24 @@ func test_battle_speed_toggle() -> void:
 	assert_eq(game.battle_speed_index, 0, "Restart round should reset battle speed index")
 	assert_float_eq(Engine.time_scale, 1.0, "Restart round should reset battle speed to 1x")
 	assert_true("1x" in game.battle_speed_button.text, "Restart round should show 1x speed")
+
+func test_event_log() -> void:
+	var game = await load_game()
+	game.event_log.clear()
+	game.update_event_log_ui()
+	assert_eq(game.event_log.size(), 0, "Event log should be clearable")
+
+	game.add_event_log("First event")
+	assert_eq(game.event_log.size(), 1, "Adding an event should store it")
+	assert_true("First event" in game.event_log_label.text, "Event log label should show added event")
+
+	for i in range(game.max_event_log_entries + 2):
+		game.add_event_log("Recent event %d" % i)
+
+	assert_eq(game.event_log.size(), game.max_event_log_entries, "Event log should trim to max entries")
+	assert_true(not ("First event" in game.event_log), "Event log should remove old entries")
+	var latest_event = "Recent event %d" % (game.max_event_log_entries + 1)
+	assert_true(latest_event in game.event_log_label.text, "Event log label should show recent events")
 
 func test_buy_xp() -> void:
 	var game = await load_game()
