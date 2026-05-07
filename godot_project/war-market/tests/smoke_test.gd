@@ -32,6 +32,7 @@ func _init() -> void:
 	await run_test("Invalid bench deploy", Callable(self, "test_invalid_bench_deploy"))
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
+	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -50,6 +51,7 @@ func load_game() -> Node:
 func test_initial_state() -> void:
 	var game = await load_game()
 	assert_eq(game.player_gold, game.starting_gold, "Initial gold should equal starting gold")
+	assert_eq(game.player_health, game.starting_player_health, "Initial player health should equal starting health")
 	assert_eq(game.round_number, 1, "Round should start at 1")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop should show the configured number of offers")
 	assert_eq(game.bench_units.size(), 0, "Bench should be empty at start")
@@ -180,6 +182,14 @@ func test_deployed_sell() -> void:
 	game._on_sell_unit_button_pressed()
 	assert_eq(game.player_roster.size(), roster_before - 1, "Player roster should decrease after selling deployed unit")
 	assert_eq(game.player_gold, gold_before + price, "Gold should refund the deployed unit price")
+
+func test_game_over_after_loss() -> void:
+	var game = await load_game()
+	game.player_health = game.loss_damage
+	game.end_round("ENEMY WINS")
+	assert_eq(game.player_health, 0, "Player health should be clamped to zero after loss")
+	assert_true(game.game_over, "Game over should be true after health reaches zero")
+	assert_eq(game.round_result_label.text, "GAME OVER", "Round result label should show GAME OVER")
 
 func test_next_round_bonus() -> void:
 	var game = await load_game()
