@@ -59,10 +59,12 @@ func _physics_process(delta: float) -> void:
 	var distance := global_position.distance_to(target.global_position)
 	
 	if distance > attack_range:
+		face_position(target.global_position)
 		var direction := (target.global_position - global_position).normalized()
 		velocity = direction * move_speed
 		move_and_slide()
 	else:
+		face_position(target.global_position)
 		velocity = Vector3.ZERO
 		move_and_slide()
 		
@@ -107,8 +109,18 @@ func find_nearest_enemy() -> CharacterBody3D:
 
 func attack(enemy: CharacterBody3D) -> void:
 	print(unit_name, " attacks ", enemy.unit_name)
+	face_position(enemy.global_position)
 	play_attack_visual(enemy)
 	enemy.take_damage(damage)
+
+func face_position(target_position: Vector3) -> void:
+	var flat_target := Vector3(target_position.x, global_position.y, target_position.z)
+	var direction := flat_target - global_position
+	if direction.length_squared() <= 0.0001:
+		return
+	
+	var target_yaw := atan2(direction.x, direction.z)
+	rotation.y = lerp_angle(rotation.y, target_yaw, 0.25)
 
 func play_attack_visual(target_node: Node3D) -> void:
 	if target_node == null or not is_instance_valid(target_node):
