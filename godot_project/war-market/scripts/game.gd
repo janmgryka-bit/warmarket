@@ -33,6 +33,7 @@ var unit_database = preload("res://scripts/unit_database.gd")
 var item_database = preload("res://scripts/item_database.gd")
 var enemy_wave_database = preload("res://scripts/enemy_wave_database.gd")
 var economy_rules = preload("res://scripts/economy_rules.gd")
+var synergy_rules = preload("res://scripts/synergy_rules.gd")
 
 # State
 var battle_started: bool = false
@@ -457,54 +458,16 @@ func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
 			return
 
 func get_player_faction_counts() -> Dictionary:
-	var counts: Dictionary = {}
-	for entry in player_roster:
-		var unit_id = entry.get("unit_id", "")
-		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		if data.is_empty():
-			continue
-		var faction = data.get("faction", "")
-		if faction == "":
-			continue
-		counts[faction] = counts.get(faction, 0) + 1
-	return counts
+	return synergy_rules.count_factions(player_roster, unit_database)
 
 func get_active_faction_bonuses() -> Dictionary:
-	var counts = get_player_faction_counts()
-	var bonuses: Dictionary = {}
-	if counts.get("Romans", 0) >= 2:
-		bonuses["Romans"] = {"max_hp_multiplier": 1.2}
-	if counts.get("Vikings", 0) >= 2:
-		bonuses["Vikings"] = {"damage_multiplier": 1.2}
-	if counts.get("Mongols", 0) >= 2:
-		bonuses["Mongols"] = {"attack_range_multiplier": 1.15}
-	if counts.get("Slavs", 0) >= 2:
-		bonuses["Slavs"] = {"attack_cooldown_multiplier": 0.85}
-	return bonuses
+	return synergy_rules.get_active_faction_bonuses(get_player_faction_counts())
 
 func get_player_role_counts() -> Dictionary:
-	var counts: Dictionary = {}
-	for entry in player_roster:
-		var unit_id = entry.get("unit_id", "")
-		var data: Dictionary = unit_database.get_unit_data(unit_id)
-		if data.is_empty():
-			continue
-		var role = data.get("role", "")
-		if role == "":
-			continue
-		counts[role] = counts.get(role, 0) + 1
-	return counts
+	return synergy_rules.count_roles(player_roster, unit_database)
 
 func get_active_role_bonuses() -> Dictionary:
-	var counts = get_player_role_counts()
-	var bonuses: Dictionary = {}
-	if counts.get("Tank", 0) >= 2:
-		bonuses["Tank"] = {"max_hp_multiplier": 1.2}
-	if counts.get("Fighter", 0) >= 2:
-		bonuses["Fighter"] = {"damage_multiplier": 1.15}
-	if counts.get("Ranged", 0) >= 2:
-		bonuses["Ranged"] = {"attack_range_multiplier": 1.1}
-	return bonuses
+	return synergy_rules.get_active_role_bonuses(get_player_role_counts())
 
 func apply_faction_bonuses_to_unit(unit: CharacterBody3D, unit_id: String) -> void:
 	if unit.team_id != 0:
@@ -1625,28 +1588,7 @@ func update_unit_cap_label() -> void:
 func update_synergy_label() -> void:
 	var faction_counts = get_player_faction_counts()
 	var role_counts = get_player_role_counts()
-	var active_faction_bonuses = get_active_faction_bonuses()
-	var active_role_bonuses = get_active_role_bonuses()
-	if active_faction_bonuses.is_empty() and active_role_bonuses.is_empty():
-		synergy_label.text = "Synergies: None"
-		return
-
-	var lines: Array[String] = ["Synergies:"]
-	if active_faction_bonuses.has("Romans"):
-		lines.append("Romans %d/2: +HP" % faction_counts.get("Romans", 0))
-	if active_faction_bonuses.has("Vikings"):
-		lines.append("Vikings %d/2: +DMG" % faction_counts.get("Vikings", 0))
-	if active_faction_bonuses.has("Mongols"):
-		lines.append("Mongols %d/2: +RNG" % faction_counts.get("Mongols", 0))
-	if active_faction_bonuses.has("Slavs"):
-		lines.append("Slavs %d/2: +AS" % faction_counts.get("Slavs", 0))
-	if active_role_bonuses.has("Tank"):
-		lines.append("Tank %d/2: +HP" % role_counts.get("Tank", 0))
-	if active_role_bonuses.has("Fighter"):
-		lines.append("Fighter %d/2: +DMG" % role_counts.get("Fighter", 0))
-	if active_role_bonuses.has("Ranged"):
-		lines.append("Ranged %d/2: +RNG" % role_counts.get("Ranged", 0))
-	synergy_label.text = "\n".join(lines)
+	synergy_label.text = synergy_rules.get_synergy_summary_text(faction_counts, role_counts)
 
 func update_bench_ui() -> void:
 	bench_label.text = "Bench: %d / %d" % [bench_units.size(), max_bench_units]
