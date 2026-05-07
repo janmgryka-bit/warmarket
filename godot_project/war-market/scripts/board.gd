@@ -10,13 +10,16 @@ var tile_bodies: Dictionary = {}
 var tile_original_colors: Dictionary = {}
 var highlighted_tile_positions: Array[Vector2i] = []
 var highlight_color: Color = Color(0.25, 1.0, 0.35)
-var stone_light_color: Color = Color(0.48, 0.49, 0.47)
-var stone_dark_color: Color = Color(0.36, 0.37, 0.36)
-var player_side_tint: Color = Color(0.18, 0.34, 0.52)
-var enemy_side_tint: Color = Color(0.48, 0.24, 0.22)
-var slab_edge_color: Color = Color(0.20, 0.21, 0.20)
-var player_side_marker_color: Color = Color(0.22, 0.42, 0.62)
-var enemy_side_marker_color: Color = Color(0.58, 0.24, 0.20)
+var stone_light_color: Color = Color(0.50, 0.51, 0.48)
+var stone_dark_color: Color = Color(0.36, 0.37, 0.35)
+var player_side_tint: Color = Color(0.20, 0.35, 0.50)
+var enemy_side_tint: Color = Color(0.46, 0.25, 0.21)
+var slab_edge_color: Color = Color(0.19, 0.20, 0.19)
+var grout_color: Color = Color(0.12, 0.13, 0.12)
+var crack_color: Color = Color(0.16, 0.17, 0.16)
+var center_divider_color: Color = Color(0.58, 0.48, 0.27)
+var player_side_marker_color: Color = Color(0.25, 0.45, 0.62)
+var enemy_side_marker_color: Color = Color(0.60, 0.27, 0.22)
 
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
@@ -47,6 +50,14 @@ func create_board() -> void:
 			var side_marker := create_side_marker(grid_pos)
 			tile_body.add_child(side_marker)
 
+			var crack_marker := create_crack_marker(grid_pos)
+			if crack_marker != null:
+				tile_body.add_child(crack_marker)
+
+			var divider_marker := create_center_divider_marker(grid_pos)
+			if divider_marker != null:
+				tile_body.add_child(divider_marker)
+
 			tile_bodies[grid_pos] = tile_body
 			tile_original_colors[grid_pos] = material.albedo_color
 			
@@ -74,12 +85,12 @@ func create_tile_slab(grid_pos: Vector2i) -> MeshInstance3D:
 
 func create_tile_edge() -> MeshInstance3D:
 	var edge_instance := MeshInstance3D.new()
-	edge_instance.name = "SlabEdge"
+	edge_instance.name = "StoneGrout"
 	var edge_mesh := BoxMesh.new()
-	edge_mesh.size = Vector3(tile_size * 0.96, 0.16, tile_size * 0.96)
+	edge_mesh.size = Vector3(tile_size * 0.98, 0.16, tile_size * 0.98)
 	edge_instance.mesh = edge_mesh
 	edge_instance.position = Vector3(0.0, -0.04, 0.0)
-	edge_instance.material_override = create_stone_material(slab_edge_color)
+	edge_instance.material_override = create_stone_material(grout_color)
 	return edge_instance
 
 func create_side_marker(grid_pos: Vector2i) -> MeshInstance3D:
@@ -94,16 +105,47 @@ func create_side_marker(grid_pos: Vector2i) -> MeshInstance3D:
 	marker.material_override = create_stone_material(marker_color.darkened(0.12))
 	return marker
 
+func create_crack_marker(grid_pos: Vector2i) -> MeshInstance3D:
+	if (grid_pos.x * 3 + grid_pos.y * 5) % 4 == 0:
+		var crack := MeshInstance3D.new()
+		crack.name = "StoneCrack"
+		var mesh := BoxMesh.new()
+		var crack_length := tile_size * (0.26 + float((grid_pos.x + grid_pos.y) % 3) * 0.08)
+		mesh.size = Vector3(crack_length, 0.018, 0.025)
+		crack.mesh = mesh
+		var offset_x := tile_size * (-0.12 + float(grid_pos.x % 3) * 0.08)
+		var offset_z := tile_size * (-0.10 + float(grid_pos.y % 3) * 0.07)
+		crack.position = Vector3(offset_x, 0.155, offset_z)
+		crack.rotation.y = deg_to_rad(18.0 if (grid_pos.x + grid_pos.y) % 2 == 0 else -24.0)
+		crack.material_override = create_stone_material(crack_color)
+		return crack
+	return null
+
+func create_center_divider_marker(grid_pos: Vector2i) -> MeshInstance3D:
+	if grid_pos.y != height / 2 - 1:
+		return null
+	var divider := MeshInstance3D.new()
+	divider.name = "CenterDivider"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(tile_size * 0.72, 0.03, 0.055)
+	divider.mesh = mesh
+	divider.position = Vector3(0.0, 0.165, tile_size * 0.47)
+	divider.material_override = create_stone_material(center_divider_color.darkened(0.08))
+	return divider
+
 func get_tile_stone_color(grid_pos: Vector2i) -> Color:
 	var color := stone_light_color if (grid_pos.x + grid_pos.y) % 2 == 0 else stone_dark_color
+	var variation := float((grid_pos.x * 11 + grid_pos.y * 7) % 5) * 0.015
+	color = color.lightened(variation)
 	if grid_pos.y >= height / 2:
-		return color.lerp(player_side_tint, 0.18)
-	return color.lerp(enemy_side_tint, 0.16)
+		return color.lerp(player_side_tint, 0.14)
+	return color.lerp(enemy_side_tint, 0.13)
 
 func create_stone_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 0.82
+	material.metallic = 0.0
 	return material
 
 func _on_tile_input_event(
