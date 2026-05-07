@@ -53,14 +53,20 @@ func clear_unit_selection() -> void:
 		selected_unit.set_selected(false)
 	selected_unit = null
 	update_unit_details_panel()
+	if board != null and board.has_method("clear_tile_highlights"):
+		board.clear_tile_highlights()
 
 func clear_bench_selection() -> void:
 	selected_bench_index = -1
+	if board != null and board.has_method("clear_tile_highlights"):
+		board.clear_tile_highlights()
 
 func clear_all_selection() -> void:
 	clear_shop_selection()
 	clear_unit_selection()
 	clear_bench_selection()
+	if board != null and board.has_method("clear_tile_highlights"):
+		board.clear_tile_highlights()
 
 # Economy
 var starting_gold: int = 10
@@ -641,6 +647,8 @@ func select_unit(unit: CharacterBody3D) -> void:
 	selected_unit = unit
 	selected_unit.set_selected(true)
 	update_unit_details_panel()
+	if board != null and board.has_method("highlight_tiles"):
+		board.highlight_tiles(get_valid_player_empty_tiles())
 	print("SELECTED UNIT: ", selected_unit.unit_name)
 
 func place_unit_on_grid(unit: CharacterBody3D, grid_pos: Vector2i) -> void:
@@ -663,6 +671,23 @@ func is_tile_occupied(grid_pos: Vector2i) -> bool:
 			return true
 	
 	return false
+
+func get_valid_player_empty_tiles() -> Array[Vector2i]:
+	var valid_tiles: Array[Vector2i] = []
+	var board_width := 8
+	var board_height := 8
+	if board != null:
+		board_width = int(board.width)
+		board_height = int(board.height)
+	var player_start_y := int(board_height / 2)
+	
+	for y in range(player_start_y, board_height):
+		for x in range(board_width):
+			var grid_pos := Vector2i(x, y)
+			if not is_tile_occupied(grid_pos):
+				valid_tiles.append(grid_pos)
+	
+	return valid_tiles
 
 # Board Interaction
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
@@ -1501,6 +1526,8 @@ func _on_bench_unit_pressed(index: int) -> void:
 	selected_bench_index = index
 	clear_shop_selection()
 	clear_unit_selection()
+	if board != null and board.has_method("highlight_tiles"):
+		board.highlight_tiles(get_valid_player_empty_tiles())
 	var unit_id = bench_units[index].get("unit_id", "")
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	print("SELECTED BENCH UNIT: ", data.get("name", unit_id))

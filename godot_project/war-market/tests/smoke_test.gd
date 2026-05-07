@@ -31,6 +31,7 @@ func _init() -> void:
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
 	await run_test("Role bonuses", Callable(self, "test_role_bonuses"))
 	await run_test("Unit details panel", Callable(self, "test_unit_details_panel"))
+	await run_test("Board tile highlights", Callable(self, "test_board_tile_highlights"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -287,6 +288,30 @@ func test_unit_details_panel() -> void:
 	assert_true(player_unit.unit_name in game.unit_details_label.text, "Unit details should include selected unit name")
 	game.clear_unit_selection()
 	assert_true(not game.unit_details_panel.visible, "Unit details panel should hide after clearing selection")
+
+func test_board_tile_highlights() -> void:
+	var game = await load_game()
+	var valid_tiles = game.get_valid_player_empty_tiles()
+	assert_true(valid_tiles.size() > 0, "There should be valid empty player-side tiles in preparation")
+	for tile in valid_tiles:
+		assert_true(tile.y >= 4, "Valid placement tiles should be on player side")
+		assert_true(not game.is_tile_occupied(tile), "Valid placement tiles should be empty")
+
+	game.bench_units.append({"unit_id": "roman_spearman", "star_level": 1})
+	game.update_bench_ui()
+	game._on_bench_unit_pressed(game.bench_units.size() - 1)
+	assert_true(game.board.highlighted_tile_positions.size() == valid_tiles.size(), "Bench selection should highlight valid tiles")
+
+	game.clear_all_selection()
+	assert_eq(game.board.highlighted_tile_positions.size(), 0, "Clearing selection should remove highlights")
+
+	var player_unit = find_deployed_player_unit()
+	assert_true(player_unit != null, "No deployed player unit available for highlight test")
+	game.select_unit(player_unit)
+	assert_true(game.board.highlighted_tile_positions.size() == game.get_valid_player_empty_tiles().size(), "Deployed unit selection should highlight valid movement tiles")
+
+	game.start_battle()
+	assert_eq(game.board.highlighted_tile_positions.size(), 0, "Starting battle should clear tile highlights")
 
 func test_reroll() -> void:
 	var game = await load_game()

@@ -6,6 +6,11 @@ signal tile_clicked(grid_pos: Vector2i)
 @export var height: int = 8
 @export var tile_size: float = 1.2
 
+var tile_bodies: Dictionary = {}
+var tile_original_colors: Dictionary = {}
+var highlighted_tile_positions: Array[Vector2i] = []
+var highlight_color: Color = Color(0.25, 1.0, 0.35)
+
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
 	create_board()
@@ -39,6 +44,8 @@ func create_board() -> void:
 			
 			mesh_instance.material_override = material
 			tile_body.add_child(mesh_instance)
+			tile_bodies[grid_pos] = tile_body
+			tile_original_colors[grid_pos] = material.albedo_color
 			
 			var collision := CollisionShape3D.new()
 			var shape := BoxShape3D.new()
@@ -76,3 +83,34 @@ func get_spawn_position(grid_pos: Vector2i) -> Vector3:
 	var pos := grid_to_world(grid_pos)
 	pos.y = 1.0
 	return pos
+
+func clear_tile_highlights() -> void:
+	for grid_pos in highlighted_tile_positions:
+		if not tile_bodies.has(grid_pos):
+			continue
+		var mesh_instance := get_tile_mesh_instance(tile_bodies[grid_pos])
+		if mesh_instance == null:
+			continue
+		if mesh_instance.material_override is StandardMaterial3D:
+			var material := mesh_instance.material_override as StandardMaterial3D
+			material.albedo_color = tile_original_colors.get(grid_pos, material.albedo_color)
+	highlighted_tile_positions.clear()
+
+func highlight_tiles(tile_positions: Array[Vector2i]) -> void:
+	clear_tile_highlights()
+	for grid_pos in tile_positions:
+		if not tile_bodies.has(grid_pos):
+			continue
+		var mesh_instance := get_tile_mesh_instance(tile_bodies[grid_pos])
+		if mesh_instance == null:
+			continue
+		if mesh_instance.material_override is StandardMaterial3D:
+			var material := mesh_instance.material_override as StandardMaterial3D
+			material.albedo_color = highlight_color
+			highlighted_tile_positions.append(grid_pos)
+
+func get_tile_mesh_instance(tile_body: Node) -> MeshInstance3D:
+	for child in tile_body.get_children():
+		if child is MeshInstance3D:
+			return child
+	return null
