@@ -40,6 +40,7 @@ var max_event_log_entries: int = 8
 var last_battle_summary: Dictionary = {}
 var current_battle_id: int = 0
 var current_battle_seed: int = 0
+var current_battle_payload: Dictionary = {}
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -750,12 +751,28 @@ func _on_start_battle_button_pressed() -> void:
 func generate_battle_seed() -> int:
 	return randi()
 
+func create_battle_payload() -> Dictionary:
+	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
+	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
+	return {
+		"battle_id": current_battle_id,
+		"battle_seed": current_battle_seed,
+		"round_number": round_number,
+		"player_level": player_level,
+		"player_health": player_health,
+		"player_gold": player_gold,
+		"player_army_snapshot": create_player_army_snapshot(),
+		"opponent_source": opponent_source,
+		"opponent_army_snapshot": opponent_snapshot
+	}
+
 func start_battle() -> void:
 	if not is_preparation_phase():
 		return
 	
 	current_battle_id += 1
 	current_battle_seed = generate_battle_seed()
+	current_battle_payload = create_battle_payload()
 	battle_started = true
 	round_ended = false
 	round_result_label.text = ""
@@ -764,6 +781,7 @@ func start_battle() -> void:
 	clear_all_selection()
 	
 	add_event_log("Battle %d seed: %d" % [current_battle_id, current_battle_seed])
+	add_event_log("Battle payload created")
 	add_event_log("Battle started")
 	
 	var units := get_tree().get_nodes_in_group("units")
@@ -991,6 +1009,7 @@ func reset_game() -> void:
 	player_xp = 0
 	current_battle_id = 0
 	current_battle_seed = 0
+	current_battle_payload.clear()
 	reset_battle_speed()
 	update_max_player_units()
 	event_log.clear()

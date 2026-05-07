@@ -531,6 +531,11 @@ func test_battle_summary() -> void:
 	game.start_battle()
 	assert_eq(game.current_battle_id, battle_id_before + 1, "Starting battle should increment battle id")
 	assert_true(game.current_battle_seed != 0, "Starting battle should generate a battle seed")
+	assert_true(not game.current_battle_payload.is_empty(), "Starting battle should create a battle payload")
+	assert_eq(game.current_battle_payload["battle_id"], game.current_battle_id, "Battle payload should record battle id")
+	assert_eq(game.current_battle_payload["battle_seed"], game.current_battle_seed, "Battle payload should record battle seed")
+	assert_true(game.current_battle_payload.has("player_army_snapshot"), "Battle payload should include player army snapshot")
+	assert_true(game.current_battle_payload.has("opponent_army_snapshot"), "Battle payload should include opponent army snapshot")
 	game.end_round("PLAYER WINS")
 	var summary = game.last_battle_summary
 	assert_true(not summary.is_empty(), "Battle summary should be recorded after round end")
