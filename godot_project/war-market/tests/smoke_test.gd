@@ -27,6 +27,7 @@ func _init() -> void:
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
+	await run_test("Role bonuses", Callable(self, "test_role_bonuses"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -169,7 +170,39 @@ func test_faction_bonuses() -> void:
 	var viking_unit = find_player_unit_by_roster_id(1)
 	assert_true(viking_unit != null, "Viking unit should be spawned for faction bonus test")
 	var viking_base_damage = game.unit_database.get_unit_data("viking_berserker")["damage"]
-	assert_float_eq(viking_unit.damage, viking_base_damage * 1.2, "Viking synergy should increase Viking damage")
+	assert_float_eq(viking_unit.damage, viking_base_damage * 1.2 * 1.15, "Viking damage should include faction and Fighter role synergy")
+
+func test_role_bonuses() -> void:
+	var game = await load_game()
+	game.clear_units()
+	await process_frame
+	game.player_roster.clear()
+	game.roster_id_counter = 0
+	game.add_player_roster_unit("roman_legionary", Vector2i(2, 6))
+	game.add_player_roster_unit("roman_centurion", Vector2i(3, 6))
+	game.spawn_player_roster()
+	game.refresh_player_unit_bonuses()
+
+	var tank_unit = find_player_unit_by_roster_id(1)
+	assert_true(tank_unit != null, "Tank unit should be spawned for role bonus test")
+	var tank_base_hp = game.unit_database.get_unit_data("roman_legionary")["max_hp"]
+	assert_float_eq(tank_unit.max_hp, tank_base_hp * 1.2 * 1.2, "Tank synergy should stack with Roman HP synergy")
+	assert_true("Tank" in game.synergy_label.text, "SynergyLabel should mention Tank role synergy")
+
+	game.clear_units()
+	await process_frame
+	game.player_roster.clear()
+	game.roster_id_counter = 0
+	game.add_player_roster_unit("roman_archer", Vector2i(2, 6))
+	game.add_player_roster_unit("slav_hunter", Vector2i(3, 6))
+	game.spawn_player_roster()
+	game.refresh_player_unit_bonuses()
+
+	var ranged_unit = find_player_unit_by_roster_id(1)
+	assert_true(ranged_unit != null, "Ranged unit should be spawned for role bonus test")
+	var ranged_base_range = game.unit_database.get_unit_data("roman_archer")["attack_range"]
+	assert_float_eq(ranged_unit.attack_range, ranged_base_range * 1.1, "Ranged synergy should increase attack range")
+	assert_true("Ranged" in game.synergy_label.text, "SynergyLabel should mention Ranged role synergy")
 
 func test_reroll() -> void:
 	var game = await load_game()
