@@ -107,7 +107,59 @@ func find_nearest_enemy() -> CharacterBody3D:
 
 func attack(enemy: CharacterBody3D) -> void:
 	print(unit_name, " attacks ", enemy.unit_name)
+	play_attack_visual(enemy)
 	enemy.take_damage(damage)
+
+func play_attack_visual(target_node: Node3D) -> void:
+	if target_node == null or not is_instance_valid(target_node):
+		return
+	
+	if attack_range > 2.0:
+		play_ranged_attack_visual(target_node)
+	else:
+		play_melee_attack_visual(target_node)
+
+func play_ranged_attack_visual(target_node: Node3D) -> void:
+	var projectile := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.08
+	mesh.height = 0.16
+	projectile.mesh = mesh
+	projectile.material_override = create_attack_visual_material(Color(1.0, 0.85, 0.25, 1.0))
+	get_tree().current_scene.add_child(projectile)
+	
+	projectile.global_position = global_position + Vector3(0.0, 1.1, 0.0)
+	var target_position := target_node.global_position + Vector3(0.0, 1.0, 0.0)
+	
+	var tween := create_tween()
+	tween.tween_property(projectile, "global_position", target_position, 0.2)
+	tween.tween_callback(projectile.queue_free)
+
+func play_melee_attack_visual(target_node: Node3D) -> void:
+	var impact := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.14
+	mesh.height = 0.28
+	impact.mesh = mesh
+	impact.material_override = create_attack_visual_material(Color(1.0, 0.95, 0.55, 1.0))
+	get_tree().current_scene.add_child(impact)
+	
+	impact.global_position = target_node.global_position + Vector3(0.0, 1.0, 0.0)
+	impact.scale = Vector3(0.4, 0.4, 0.4)
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(impact, "scale", Vector3(1.2, 1.2, 1.2), 0.18)
+	tween.tween_property(impact, "material_override:albedo_color:a", 0.0, 0.18)
+	tween.set_parallel(false)
+	tween.tween_callback(impact.queue_free)
+
+func create_attack_visual_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	return material
 
 func take_damage(amount: float) -> void:
 	current_hp -= amount
