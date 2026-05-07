@@ -478,6 +478,7 @@ func test_dynamic_market_prices() -> void:
 	var unit_id = "roman_spearman"
 	var base_price = game.get_unit_base_price(unit_id)
 	assert_eq(game.get_unit_market_delta(unit_id), 0, "Market delta should start at zero")
+	assert_eq(game.get_unit_market_demand(unit_id), 0, "Market demand should start at zero")
 	assert_eq(game.get_unit_market_price(unit_id), base_price, "Market price should start at base price")
 
 	game.current_shop_offers = [unit_id]
@@ -488,23 +489,36 @@ func test_dynamic_market_prices() -> void:
 	var gold_before_buy = game.player_gold
 	game._on_shop_card_pressed(unit_id, 0)
 	assert_eq(game.player_gold, gold_before_buy - base_price, "Buying should charge current market price")
-	assert_eq(game.get_unit_market_delta(unit_id), 1, "Buying should increase unit market delta")
-	assert_eq(game.get_unit_market_price(unit_id), base_price + 1, "Future market price should increase after buying")
+	assert_eq(game.get_unit_market_demand(unit_id), 1, "One buy should add demand")
+	assert_eq(game.get_unit_market_delta(unit_id), 0, "One buy should not immediately increase market delta")
+	assert_eq(game.get_unit_market_price(unit_id), base_price, "One buy should keep future market price stable")
+
+	game.sold_shop_offer_indices.clear()
+	game._on_shop_card_pressed(unit_id, 0)
+	assert_eq(game.get_unit_market_demand(unit_id), 0, "Demand should reset after reaching the price threshold")
+	assert_eq(game.get_unit_market_delta(unit_id), 1, "Repeated demand should increase market delta")
+	assert_eq(game.get_unit_market_price(unit_id), base_price + 1, "Repeated demand should increase future market price mildly")
 
 	var gold_after_buy = game.player_gold
-	game.selected_bench_index = 0
+	game.selected_bench_index = game.bench_units.size() - 1
 	game._on_sell_unit_button_pressed()
 	assert_eq(game.player_gold, gold_after_buy + base_price, "Selling should refund base price, not inflated market price")
 	assert_true(game.player_gold <= gold_before_buy, "Buying then immediately selling should not create profit")
-	assert_eq(game.get_unit_market_delta(unit_id), 0, "Selling should reduce unit market delta")
+	assert_eq(game.get_unit_market_delta(unit_id), 0, "Selling should gently reduce positive market pressure")
 
-	game.adjust_market_delta(unit_id, 99)
+	game.add_market_demand(unit_id, 1)
+	game.decay_market_state()
+	assert_eq(game.get_unit_market_demand(unit_id), 0, "Round-end market decay should clear partial demand")
+
+	for i in range(10):
+		game.add_market_demand(unit_id, game.demand_threshold_for_price_increase)
 	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_max, "Positive market delta should clamp")
-	game.decay_market_prices()
+	assert_eq(game.get_unit_market_price(unit_id), base_price + game.market_delta_max, "Demand-clamped market price should remain sane")
+	game.decay_market_state()
 	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_max - 1, "Positive market delta should decay toward zero")
 	game.adjust_market_delta(unit_id, -99)
 	assert_eq(game.get_unit_market_delta(unit_id), game.market_delta_min, "Negative market delta should clamp")
-	game.decay_market_prices()
+	game.decay_market_state()
 	assert_eq(game.get_unit_market_delta(unit_id), 0, "Negative market delta should decay toward zero")
 
 func test_buy_to_bench() -> void:

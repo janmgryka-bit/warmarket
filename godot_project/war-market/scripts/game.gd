@@ -551,8 +551,10 @@ var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
 var market_deltas: Dictionary = {}
+var market_demands: Dictionary = {}
 var market_delta_min: int = -1
-var market_delta_max: int = 3
+var market_delta_max: int = 2
+var demand_threshold_for_price_increase: int = 2
 
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
@@ -1536,7 +1538,7 @@ func restart_round() -> void:
 	reset_battle_speed()
 	clear_all_selection()
 	round_number += 1
-	decay_market_prices()
+	decay_market_state()
 	
 	var result_bonus := 0
 	if last_round_result == "PLAYER WINS":
@@ -1655,6 +1657,7 @@ func reset_game() -> void:
 	current_battle_seed = 0
 	current_battle_payload.clear()
 	market_deltas.clear()
+	market_demands.clear()
 	reset_battle_speed()
 	reset_camera_zoom()
 	update_max_player_units()
@@ -1766,6 +1769,9 @@ func get_unit_base_price(unit_id: String) -> int:
 func get_unit_market_delta(unit_id: String) -> int:
 	return int(market_deltas.get(unit_id, 0))
 
+func get_unit_market_demand(unit_id: String) -> int:
+	return int(market_demands.get(unit_id, 0))
+
 func get_unit_market_price(unit_id: String) -> int:
 	return max(1, get_unit_base_price(unit_id) + get_unit_market_delta(unit_id))
 
@@ -1778,6 +1784,22 @@ func adjust_market_delta(unit_id: String, amount: int) -> void:
 	else:
 		market_deltas[unit_id] = next_delta
 
+func add_market_demand(unit_id: String, amount: int) -> void:
+	if unit_id == "":
+		return
+	var next_demand = max(0, get_unit_market_demand(unit_id) + amount)
+	if next_demand == 0:
+		market_demands.erase(unit_id)
+	else:
+		market_demands[unit_id] = next_demand
+	process_market_demand(unit_id)
+
+func process_market_demand(unit_id: String) -> void:
+	if get_unit_market_demand(unit_id) < demand_threshold_for_price_increase:
+		return
+	adjust_market_delta(unit_id, 1)
+	market_demands.erase(unit_id)
+
 func decay_market_prices() -> void:
 	var unit_ids := market_deltas.keys()
 	for unit_id in unit_ids:
@@ -1787,13 +1809,25 @@ func decay_market_prices() -> void:
 		elif delta < 0:
 			adjust_market_delta(unit_id, 1)
 
+func decay_market_state() -> void:
+	decay_market_prices()
+	market_demands.clear()
+
+func reduce_market_pressure_on_sell(unit_id: String) -> void:
+	if get_unit_market_demand(unit_id) > 0:
+		add_market_demand(unit_id, -1)
+	elif get_unit_market_delta(unit_id) > 0:
+		adjust_market_delta(unit_id, -1)
+
 func get_market_trend_text(unit_id: String) -> String:
 	var delta = get_unit_market_delta(unit_id)
 	if delta > 0:
-		return "+%dg" % delta
+		return "Rising"
 	if delta < 0:
-		return "%dg" % delta
-	return "base"
+		return "Cheap"
+	if get_unit_market_demand(unit_id) > 0:
+		return "Warming"
+	return "Stable"
 
 func _on_buy_xp_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -1861,7 +1895,7 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	player_gold -= cost
 	bench_units.append({"unit_id": unit_id, "star_level": 1})
 	sold_shop_offer_indices.append(offer_index)
-	adjust_market_delta(unit_id, 1)
+	add_market_demand(unit_id, 1)
 	update_gold_label()
 	try_merge_bench_units()
 	update_bench_ui()
@@ -2110,7 +2144,7 @@ func _on_sell_unit_button_pressed() -> void:
 		
 		var bench_refund = get_unit_base_price(bench_unit_id) * get_star_refund_multiplier(bench_star)
 		player_gold += bench_refund
-		adjust_market_delta(bench_unit_id, -1)
+		reduce_market_pressure_on_sell(bench_unit_id)
 		bench_units.remove_at(selected_bench_index)
 		selected_bench_index = -1
 		update_gold_label()
@@ -2162,7 +2196,7 @@ func _on_sell_unit_button_pressed() -> void:
 		item_inventory.append(item_id)
 	
 	player_gold += deployed_refund
-	adjust_market_delta(deployed_unit_id, -1)
+	reduce_market_pressure_on_sell(deployed_unit_id)
 	player_roster.remove_at(roster_index)
 	selected_unit.queue_free()
 	clear_all_selection()
