@@ -32,181 +32,280 @@ script = ExtResource("3_audio")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=390280858]
 
-[node name="ActionFeedbackLabel" type="Label" parent="UI"]
+[node name="MainLayout" type="MarginContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="RootColumns" type="HBoxContainer" parent="UI/MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="LeftSidebar" type="VBoxContainer" parent="UI/MainLayout/RootColumns"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+theme_override_constants/separation = 6
+
+[node name="StartBattleButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1115291842]
+layout_mode = 2
+text = "Start Battle"
+
+[node name="RestartRoundButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1092564637]
 visible = false
-offset_left = 420.0
-offset_top = 35.0
-offset_right = 810.0
-offset_bottom = 70.0
+layout_mode = 2
+text = "Next Round"
+
+[node name="BattleSpeedButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+text = "Speed: 1x"
+
+[node name="MuteButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+text = "Sound: On"
+
+[node name="RoundResultLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1876565823]
+layout_mode = 2
+text = "Round Result"
+
+[node name="RoundLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1876565824]
+layout_mode = 2
+text = "Round: 1"
+
+[node name="GoldLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1612883263]
+layout_mode = 2
+text = "Gold: 10"
+
+[node name="PlayerLevelLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+text = "Level: 1 (0/2 XP)"
+
+[node name="BuyXPButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+text = "Buy XP (4g)"
+
+[node name="PlayerHealthLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1612883266]
+layout_mode = 2
+text = "HP: 20"
+
+[node name="UnitCapLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1612883265]
+layout_mode = 2
+text = "Units: 0 / 2"
+
+[node name="SynergyLabel" type="Label" parent="UI/MainLayout/RootColumns/LeftSidebar"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Synergies: None"
+
+[node name="SellUnitButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=1612883264]
+layout_mode = 2
+text = "Sell Unit"
+
+[node name="RerollButton" type="Button" parent="UI/MainLayout/RootColumns/LeftSidebar" unique_id=2048921484]
+layout_mode = 2
+text = "Reroll (2g)"
+
+[node name="CenterArea" type="VBoxContainer" parent="UI/MainLayout/RootColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="ActionFeedbackLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 34)
 text = "Action feedback"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HudContainer" type="VBoxContainer" parent="UI" unique_id=390280859]
-offset_left = 30.0
-offset_top = 30.0
-offset_right = 250.0
-offset_bottom = 400.0
-custom_minimum_size = Vector2(220, 0)
-
-[node name="StartBattleButton" type="Button" parent="UI/HudContainer" unique_id=1115291842]
+[node name="CenterSpacer" type="Control" parent="UI/MainLayout/RootColumns/CenterArea"]
 layout_mode = 2
-text = "Start Battle"
+size_flags_vertical = 3
 
-[node name="BattleSpeedButton" type="Button" parent="UI/HudContainer"]
+[node name="BottomArea" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea"]
 layout_mode = 2
-text = "Speed: 1x"
+custom_minimum_size = Vector2(0, 210)
+theme_override_constants/separation = 10
 
-[node name="MuteButton" type="Button" parent="UI/HudContainer"]
+[node name="BenchPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=2100000001]
 layout_mode = 2
-text = "Sound: On"
+custom_minimum_size = Vector2(0, 92)
 
-[node name="RoundResultLabel" type="Label" parent="UI/HudContainer" unique_id=1876565823]
+[node name="BenchMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="BenchContent" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin"]
 layout_mode = 2
-text = "Round Result"
+theme_override_constants/separation = 6
 
-[node name="RoundLabel" type="Label" parent="UI/HudContainer" unique_id=1876565824]
+[node name="BenchLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent" unique_id=2100000002]
 layout_mode = 2
-text = "Round: 1"
+text = "Bench: 0 / 6"
 
-[node name="GoldLabel" type="Label" parent="UI/HudContainer" unique_id=1612883263]
+[node name="BenchScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent"]
 layout_mode = 2
-text = "Gold: 10"
+size_flags_horizontal = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
 
-[node name="PlayerLevelLabel" type="Label" parent="UI/HudContainer"]
+[node name="BenchItems" type="HBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchScroll" unique_id=2100000003]
 layout_mode = 2
-text = "Level: 1 (0/2 XP)"
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="BuyXPButton" type="Button" parent="UI/HudContainer"]
-layout_mode = 2
-text = "Buy XP (4g)"
-
-[node name="UseSelfAsOpponentButton" type="Button" parent="UI/HudContainer"]
-layout_mode = 2
-text = "Mirror Army"
-
-[node name="PlayerHealthLabel" type="Label" parent="UI/HudContainer" unique_id=1612883266]
-layout_mode = 2
-text = "HP: 20"
-
-[node name="UnitCapLabel" type="Label" parent="UI/HudContainer" unique_id=1612883265]
-layout_mode = 2
-text = "Units: 0 / 2"
-
-[node name="SynergyLabel" type="Label" parent="UI/HudContainer"]
-layout_mode = 2
-text = "Synergies: None"
-
-[node name="SellUnitButton" type="Button" parent="UI/HudContainer" unique_id=1612883264]
-layout_mode = 2
-text = "Sell Unit"
-
-[node name="RerollButton" type="Button" parent="UI/HudContainer" unique_id=2048921484]
-layout_mode = 2
-text = "Reroll (2g)"
-
-[node name="RestartRoundButton" type="Button" parent="UI" unique_id=1092564637]
-offset_left = 30.0
-offset_top = 95.0
-offset_right = 230.0
-offset_bottom = 145.0
-text = "Next Round"
-
-[node name="UnitDetailsPanel" type="Panel" parent="UI"]
-visible = false
-offset_left = 960.0
-offset_top = 115.0
-offset_right = 1210.0
-offset_bottom = 360.0
-
-[node name="UnitDetailsLabel" type="Label" parent="UI/UnitDetailsPanel"]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 15.0
-offset_right = 235.0
-offset_bottom = 230.0
-text = "Unit Details"
-
-[node name="EventLogPanel" type="Panel" parent="UI"]
-offset_left = 960.0
-offset_top = 375.0
-offset_right = 1210.0
-offset_bottom = 575.0
-
-[node name="EventLogLabel" type="Label" parent="UI/EventLogPanel"]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 15.0
-offset_right = 235.0
-offset_bottom = 185.0
-text = "Event Log"
-
-[node name="ItemPanel" type="Panel" parent="UI"]
-offset_left = 960.0
-offset_top = 585.0
-offset_right = 1210.0
-offset_bottom = 675.0
-
-[node name="ItemLabel" type="Label" parent="UI/ItemPanel"]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 10.0
-offset_right = 235.0
-offset_bottom = 35.0
-text = "Items: 0"
-
-[node name="ItemItems" type="HBoxContainer" parent="UI/ItemPanel"]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 40.0
-offset_right = 235.0
-offset_bottom = 80.0
-separation = 8
-
-[node name="BottomContainer" type="VBoxContainer" parent="UI" unique_id=390280860]
-offset_left = 225.0
-offset_top = 390.0
-offset_right = 925.0
-offset_bottom = 640.0
-custom_minimum_size = Vector2(700, 250)
-separation = 10
-
-[node name="BenchPanel" type="Panel" parent="UI/BottomContainer" unique_id=2100000001]
+[node name="ShopPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=1612883262]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 105)
 
-[node name="BenchLabel" type="Label" parent="UI/BottomContainer/BenchPanel" unique_id=2100000002]
-offset_left = 15.0
-offset_top = 15.0
-offset_right = 305.0
-offset_bottom = 45.0
-text = "Bench: 0 / 6"
+[node name="ShopMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
 
-[node name="BenchItems" type="HBoxContainer" parent="UI/BottomContainer/BenchPanel" unique_id=2100000003]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 55.0
-offset_right = 735.0
-offset_bottom = 100.0
-separation = 10
-
-[node name="ShopPanel" type="Panel" parent="UI/BottomContainer" unique_id=1612883262]
+[node name="ShopScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 90)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
 
-[node name="ShopItems" type="HBoxContainer" parent="UI/BottomContainer/ShopPanel" unique_id=2048921483]
-layout_mode = 0
-offset_left = 15.0
-offset_top = 15.0
-offset_right = 685.0
-offset_bottom = 80.0
-separation = 10
+[node name="ShopItems" type="HBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin/ShopScroll" unique_id=2048921483]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[connection signal="pressed" from="UI/HudContainer/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/BattleSpeedButton" to="." method="_on_battle_speed_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/MuteButton" to="." method="_on_mute_button_pressed"]
-[connection signal="pressed" from="UI/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/RerollButton" to="." method="_on_reroll_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/BuyXPButton" to="." method="_on_buy_xp_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/UseSelfAsOpponentButton" to="." method="_on_use_self_as_opponent_button_pressed"]
-[connection signal="pressed" from="UI/HudContainer/SellUnitButton" to="." method="_on_sell_unit_button_pressed"]
+[node name="RightSidebar" type="VBoxContainer" parent="UI/MainLayout/RootColumns"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+theme_override_constants/separation = 10
+
+[node name="UnitDetailsPanel" type="Panel" parent="UI/MainLayout/RootColumns/RightSidebar"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 215)
+
+[node name="UnitDetailsMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/RightSidebar/UnitDetailsPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="UnitDetailsLabel" type="Label" parent="UI/MainLayout/RootColumns/RightSidebar/UnitDetailsPanel/UnitDetailsMargin"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Unit Details"
+
+[node name="EventLogPanel" type="Panel" parent="UI/MainLayout/RootColumns/RightSidebar"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+
+[node name="EventLogMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/RightSidebar/EventLogPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="EventLogScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/RightSidebar/EventLogPanel/EventLogMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="EventLogLabel" type="Label" parent="UI/MainLayout/RootColumns/RightSidebar/EventLogPanel/EventLogMargin/EventLogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Event Log"
+
+[node name="ItemPanel" type="Panel" parent="UI/MainLayout/RootColumns/RightSidebar"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 110)
+
+[node name="ItemMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/RightSidebar/ItemPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="ItemContent" type="VBoxContainer" parent="UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ItemLabel" type="Label" parent="UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent"]
+layout_mode = 2
+text = "Items: 0"
+
+[node name="ItemScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="ItemItems" type="HBoxContainer" parent="UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent/ItemScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DebugPanel" type="Panel" parent="UI/MainLayout/RootColumns/RightSidebar"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 85)
+
+[node name="DebugMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/RightSidebar/DebugPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="DebugContent" type="VBoxContainer" parent="UI/MainLayout/RootColumns/RightSidebar/DebugPanel/DebugMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DebugLabel" type="Label" parent="UI/MainLayout/RootColumns/RightSidebar/DebugPanel/DebugMargin/DebugContent"]
+layout_mode = 2
+text = "Debug"
+
+[node name="UseSelfAsOpponentButton" type="Button" parent="UI/MainLayout/RootColumns/RightSidebar/DebugPanel/DebugMargin/DebugContent"]
+layout_mode = 2
+text = "Mirror Army"
+
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/RestartRoundButton" to="." method="_on_restart_round_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/BattleSpeedButton" to="." method="_on_battle_speed_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/MuteButton" to="." method="_on_mute_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/RerollButton" to="." method="_on_reroll_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/BuyXPButton" to="." method="_on_buy_xp_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/RightSidebar/DebugPanel/DebugMargin/DebugContent/UseSelfAsOpponentButton" to="." method="_on_use_self_as_opponent_button_pressed"]
+[connection signal="pressed" from="UI/MainLayout/RootColumns/LeftSidebar/SellUnitButton" to="." method="_on_sell_unit_button_pressed"]

@@ -4,30 +4,30 @@ extends Node3D
 @onready var board: Node3D = $Board
 @onready var units_container: Node3D = $Units
 @onready var audio_manager: Node = $AudioManager
-@onready var start_button: Button = $UI/HudContainer/StartBattleButton
-@onready var battle_speed_button: Button = $UI/HudContainer/BattleSpeedButton
-@onready var mute_button: Button = $UI/HudContainer/MuteButton
-@onready var restart_button: Button = $UI/RestartRoundButton
-@onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
-@onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
-@onready var unit_details_label: Label = $UI/UnitDetailsPanel/UnitDetailsLabel
-@onready var event_log_label: Label = $UI/EventLogPanel/EventLogLabel
-@onready var action_feedback_label: Label = $UI/ActionFeedbackLabel
-@onready var item_label: Label = $UI/ItemPanel/ItemLabel
-@onready var item_items: HBoxContainer = $UI/ItemPanel/ItemItems
-@onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
-@onready var gold_label: Label = $UI/HudContainer/GoldLabel
-@onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
-@onready var round_label: Label = $UI/HudContainer/RoundLabel
-@onready var reroll_button: Button = $UI/HudContainer/RerollButton
-@onready var buy_xp_button: Button = $UI/HudContainer/BuyXPButton
-@onready var use_self_as_opponent_button: Button = $UI/HudContainer/UseSelfAsOpponentButton
-@onready var sell_unit_button: Button = $UI/HudContainer/SellUnitButton
-@onready var unit_cap_label: Label = $UI/HudContainer/UnitCapLabel
-@onready var synergy_label: Label = $UI/HudContainer/SynergyLabel
-@onready var player_health_label: Label = $UI/HudContainer/PlayerHealthLabel
-@onready var bench_label: Label = $UI/BottomContainer/BenchPanel/BenchLabel
-@onready var bench_items: HBoxContainer = $UI/BottomContainer/BenchPanel/BenchItems
+@onready var start_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/StartBattleButton
+@onready var battle_speed_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/BattleSpeedButton
+@onready var mute_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/MuteButton
+@onready var restart_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/RestartRoundButton
+@onready var round_result_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/RoundResultLabel
+@onready var unit_details_panel: Panel = $UI/MainLayout/RootColumns/RightSidebar/UnitDetailsPanel
+@onready var unit_details_label: Label = $UI/MainLayout/RootColumns/RightSidebar/UnitDetailsPanel/UnitDetailsMargin/UnitDetailsLabel
+@onready var event_log_label: Label = $UI/MainLayout/RootColumns/RightSidebar/EventLogPanel/EventLogMargin/EventLogScroll/EventLogLabel
+@onready var action_feedback_label: Label = $UI/MainLayout/RootColumns/CenterArea/ActionFeedbackLabel
+@onready var item_label: Label = $UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent/ItemLabel
+@onready var item_items: HBoxContainer = $UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent/ItemScroll/ItemItems
+@onready var shop_items: HBoxContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin/ShopScroll/ShopItems
+@onready var gold_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/GoldLabel
+@onready var player_level_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/PlayerLevelLabel
+@onready var round_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/RoundLabel
+@onready var reroll_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/RerollButton
+@onready var buy_xp_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/BuyXPButton
+@onready var use_self_as_opponent_button: Button = $UI/MainLayout/RootColumns/RightSidebar/DebugPanel/DebugMargin/DebugContent/UseSelfAsOpponentButton
+@onready var sell_unit_button: Button = $UI/MainLayout/RootColumns/LeftSidebar/SellUnitButton
+@onready var unit_cap_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/UnitCapLabel
+@onready var synergy_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/SynergyLabel
+@onready var player_health_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/PlayerHealthLabel
+@onready var bench_label: Label = $UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchLabel
+@onready var bench_items: HBoxContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchScroll/BenchItems
 
 # Resources
 var unit_scene: PackedScene = preload("res://units/Unit.tscn")
@@ -1178,7 +1178,7 @@ func populate_shop() -> void:
 			continue
 		
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(220, 85)
+		card.custom_minimum_size = Vector2(180, 80)
 		
 		if i in sold_shop_offer_indices:
 			card.text = "SOLD"
@@ -1606,7 +1606,7 @@ func update_bench_ui() -> void:
 	for i in range(bench_units.size()):
 		var entry = bench_units[i]
 		var button = Button.new()
-		button.custom_minimum_size = Vector2(220, 70)
+		button.custom_minimum_size = Vector2(180, 55)
 		button.text = get_bench_unit_display_name(entry)
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
