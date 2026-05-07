@@ -82,8 +82,9 @@ script = ExtResource("1_rvslj")
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2125345866]
-transform = Transform3D(0.81915206, -0.43938506, 0.36868784, 0, 0.64278764, 0.76604444, -0.57357645, -0.62750685, 0.5265408, 7, 10, 10)
+transform = Transform3D(0.7907237, -0.44760382, 0.41823506, 0, 0.6828025, 0.73060274, -0.6121732, -0.5775709, 0.5398078, 6.35, 8.3, 8.65)
 current = true
+fov = 58.0
 
 [node name="ArenaFloor" type="MeshInstance3D" parent="." unique_id=440429076]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)

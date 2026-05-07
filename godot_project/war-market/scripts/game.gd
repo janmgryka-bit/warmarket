@@ -422,7 +422,7 @@ func setup_camera_defaults() -> void:
 	if camera == null:
 		return
 	default_camera_position = camera.global_position
-	camera_focus_position = Vector3.ZERO
+	camera_focus_position = Vector3(0.0, 0.65, 0.45)
 	focus_camera_on_board()
 
 func focus_camera_on_board() -> void:
