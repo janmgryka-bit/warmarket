@@ -472,6 +472,7 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 	unit.name = unit_id
 	unit.unit_name = data["name"]
 	unit.team_id = team_id
+	unit.faction = data["faction"]
 	unit.role = data["role"]
 	unit.max_hp = data["max_hp"]
 	unit.damage = data["damage"]
