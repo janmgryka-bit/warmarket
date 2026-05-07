@@ -34,6 +34,7 @@ var item_database = preload("res://scripts/item_database.gd")
 var enemy_wave_database = preload("res://scripts/enemy_wave_database.gd")
 var economy_rules = preload("res://scripts/economy_rules.gd")
 var synergy_rules = preload("res://scripts/synergy_rules.gd")
+var battle_snapshot = preload("res://scripts/battle_snapshot.gd")
 
 # State
 var battle_started: bool = false
@@ -284,14 +285,7 @@ func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 
 func create_player_army_snapshot() -> Array[Dictionary]:
-	var snapshot: Array[Dictionary] = []
-	for entry in player_roster:
-		snapshot.append({
-			"unit_id": entry.get("unit_id", ""),
-			"grid_pos": entry.get("grid_pos", Vector2i.ZERO),
-			"star_level": entry.get("star_level", 1)
-		})
-	return snapshot
+	return battle_snapshot.create_army_snapshot_from_roster(player_roster)
 
 func create_spawned_opponent_army_snapshot() -> Array[Dictionary]:
 	var snapshot: Array[Dictionary] = []
@@ -303,22 +297,13 @@ func create_spawned_opponent_army_snapshot() -> Array[Dictionary]:
 	return snapshot
 
 func create_army_snapshot_entry_from_unit(unit: CharacterBody3D) -> Dictionary:
-	return {
-		"unit_id": String(unit.name),
-		"grid_pos": unit.grid_position,
-		"star_level": get_unit_star_level(unit)
-	}
+	return battle_snapshot.create_unit_snapshot_from_unit(unit)
 
 func get_unit_star_level(unit: CharacterBody3D) -> int:
-	if unit.has_meta("star_level"):
-		return unit.get_meta("star_level")
-	var star_level = unit.get("star_level")
-	if star_level == null:
-		return 1
-	return star_level
+	return battle_snapshot.get_unit_star_level(unit)
 
 func mirror_grid_pos_for_opponent(grid_pos: Vector2i) -> Vector2i:
-	return Vector2i(grid_pos.x, 7 - grid_pos.y)
+	return battle_snapshot.mirror_grid_pos_for_opponent(grid_pos)
 
 func spawn_opponent_army(round_num: int) -> void:
 	# Opponent army = enemy team units for the current battle.
@@ -801,7 +786,7 @@ func generate_battle_seed() -> int:
 func create_battle_payload() -> Dictionary:
 	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
-	return {
+	return battle_snapshot.create_battle_payload({
 		"battle_id": current_battle_id,
 		"battle_seed": current_battle_seed,
 		"round_number": round_number,
@@ -811,7 +796,7 @@ func create_battle_payload() -> Dictionary:
 		"player_army_snapshot": create_player_army_snapshot(),
 		"opponent_source": opponent_source,
 		"opponent_army_snapshot": opponent_snapshot
-	}
+	})
 
 func start_battle() -> void:
 	if not is_preparation_phase():
@@ -870,7 +855,7 @@ func check_round_end() -> void:
 func create_battle_summary(result_text: String, player_damage_taken: int = 0) -> Dictionary:
 	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
-	return {
+	return battle_snapshot.create_battle_summary({
 		"battle_id": current_battle_id,
 		"battle_seed": current_battle_seed,
 		"round_number": round_number,
@@ -883,23 +868,11 @@ func create_battle_summary(result_text: String, player_damage_taken: int = 0) ->
 		"opponent_army_snapshot": opponent_snapshot,
 		"surviving_units": create_surviving_units_snapshot(),
 		"player_damage_taken": player_damage_taken
-	}
+	})
 
 func create_surviving_units_snapshot() -> Array[Dictionary]:
-	var snapshot: Array[Dictionary] = []
 	var units := get_tree().get_nodes_in_group("units")
-	for unit in units:
-		if not is_instance_valid(unit) or unit.current_hp <= 0:
-			continue
-		snapshot.append({
-			"unit_id": String(unit.name),
-			"team_id": unit.team_id,
-			"star_level": get_unit_star_level(unit),
-			"current_hp": unit.current_hp,
-			"max_hp": unit.max_hp,
-			"grid_pos": unit.grid_position
-		})
-	return snapshot
+	return battle_snapshot.create_surviving_units_snapshot(units)
 
 func get_round_loss_damage(target_round: int) -> int:
 	return economy_rules.get_round_loss_damage(target_round)
