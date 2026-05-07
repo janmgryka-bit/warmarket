@@ -707,6 +707,7 @@ func get_valid_player_empty_tiles() -> Array[Vector2i]:
 
 # Board Interaction
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
+	print("BOARD TILE CLICK HANDLER: ", grid_pos, " selected_bench_index: ", selected_bench_index)
 	if not is_preparation_phase():
 		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot interact with board outside preparation phase")
@@ -736,6 +737,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	clear_unit_selection()
 
 func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
+	print("TRY DEPLOY BENCH UNIT: index ", selected_bench_index, " tile ", grid_pos)
 	if not is_preparation_phase():
 		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot deploy bench unit outside preparation phase")
@@ -1636,4 +1638,4 @@ func _on_bench_unit_pressed(index: int) -> void:
 		board.highlight_tiles(get_valid_player_empty_tiles())
 	var unit_id = bench_units[index].get("unit_id", "")
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
-	print("SELECTED BENCH UNIT: ", data.get("name", unit_id))
+	print("SELECTED BENCH UNIT: ", data.get("name", unit_id), " index: ", selected_bench_index)

@@ -593,12 +593,13 @@ func test_bench_deploy() -> void:
 	var roster_before = game.player_roster.size()
 	var tile = find_empty_player_tile(game)
 	assert_true(tile != null, "No empty player tile available for bench deploy")
-	game.selected_bench_index = game.bench_units.size() - 1
-	var deployed = game.try_deploy_bench_unit(tile)
-	assert_true(deployed, "Bench deploy should succeed on a valid empty tile")
+	game._on_bench_unit_pressed(game.bench_units.size() - 1)
+	assert_eq(game.selected_bench_index, bench_before - 1, "Bench click should select the bench unit")
+	game._on_board_tile_clicked(tile)
 	assert_eq(game.bench_units.size(), bench_before - 1, "Bench size should decrease after deploy")
 	assert_eq(game.player_roster.size(), roster_before + 1, "Roster size should increase after deploy")
 	assert_true(has_player_unit_at_tile(tile), "A player unit should be spawned at the deployed tile")
+	assert_eq(game.selected_bench_index, -1, "Bench selection should clear after deploy")
 
 func test_invalid_bench_deploy() -> void:
 	var game = await load_game()
