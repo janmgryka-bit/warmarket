@@ -26,6 +26,7 @@ func _init() -> void:
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
+	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -136,6 +137,36 @@ func test_shop_tier_rolls() -> void:
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop roll should fall back when the rolled tier pool is empty")
 	assert_valid_shop_offers(game)
 	game.shop_tier_odds[6] = original_level_6_odds
+
+func test_faction_bonuses() -> void:
+	var game = await load_game()
+	game.clear_units()
+	await process_frame
+	game.player_roster.clear()
+	game.roster_id_counter = 0
+	game.add_player_roster_unit("roman_legionary", Vector2i(2, 6))
+	game.add_player_roster_unit("roman_spearman", Vector2i(3, 6))
+	game.spawn_player_roster()
+	game.refresh_player_unit_bonuses()
+
+	var roman_unit = find_player_unit_by_roster_id(1)
+	assert_true(roman_unit != null, "Roman unit should be spawned for faction bonus test")
+	var roman_base_hp = game.unit_database.get_unit_data("roman_legionary")["max_hp"]
+	assert_float_eq(roman_unit.max_hp, roman_base_hp * 1.2, "Roman synergy should increase Roman max HP")
+
+	game.clear_units()
+	await process_frame
+	game.player_roster.clear()
+	game.roster_id_counter = 0
+	game.add_player_roster_unit("viking_berserker", Vector2i(2, 6))
+	game.add_player_roster_unit("viking_axeman", Vector2i(3, 6))
+	game.spawn_player_roster()
+	game.refresh_player_unit_bonuses()
+
+	var viking_unit = find_player_unit_by_roster_id(1)
+	assert_true(viking_unit != null, "Viking unit should be spawned for faction bonus test")
+	var viking_base_damage = game.unit_database.get_unit_data("viking_berserker")["damage"]
+	assert_float_eq(viking_unit.damage, viking_base_damage * 1.2, "Viking synergy should increase Viking damage")
 
 func test_reroll() -> void:
 	var game = await load_game()
@@ -293,7 +324,7 @@ func test_deployed_merge_to_three_star() -> void:
 	assert_eq(spawned_unit.star_level, 3, "Spawned deployed unit should update to 3-star")
 	assert_eq(spawned_unit.star_label.text, "★★★", "Deployed StarLabel should show three stars")
 	var base_hp = game.unit_database.get_unit_data(unit_id)["max_hp"]
-	assert_eq(spawned_unit.max_hp, base_hp * 3.2, "3-star unit should use 3.2x HP scaling")
+	assert_float_eq(spawned_unit.max_hp, base_hp * 3.2 * 1.2, "3-star Roman unit should use star scaling plus Roman synergy")
 
 	game.restart_round()
 	await process_frame
@@ -494,7 +525,17 @@ func find_deployed_player_unit():
 
 func find_player_unit_by_roster_id(roster_id: int):
 	for unit in get_nodes_in_group("units"):
+		if unit.is_queued_for_deletion():
+			continue
 		if unit.team_id == 0 and unit.has_meta("roster_id") and unit.get_meta("roster_id") == roster_id:
+			return unit
+	return null
+
+func find_player_unit_by_unit_id(unit_id: String):
+	for unit in get_nodes_in_group("units"):
+		if unit.is_queued_for_deletion():
+			continue
+		if unit.team_id == 0 and unit.name == unit_id:
 			return unit
 	return null
 
@@ -514,3 +555,9 @@ func assert_valid_shop_offers(game) -> void:
 	for unit_id in game.current_shop_offers:
 		assert_true(unit_id in game.shop_unit_ids, "Shop offer should come from shop_unit_ids")
 		assert_true(not game.unit_database.get_unit_data(unit_id).is_empty(), "Shop offer should have unit data")
+
+func assert_float_eq(actual: float, expected: float, message: String) -> void:
+	if abs(actual - expected) > 0.001:
+		print("FAIL ", current_test_name, ": ", message, " | actual=", str(actual), " expected=", str(expected))
+		quit(1)
+		return

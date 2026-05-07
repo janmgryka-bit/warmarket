@@ -179,6 +179,7 @@ func spawn_player_roster() -> void:
 			unit.set_meta("roster_id", entry["roster_id"])
 			unit.set_meta("star_level", star_level)
 			print("Spawning roster unit: ", entry["unit_id"], " at ", entry["grid_pos"], " id: ", entry["roster_id"], " star: ", star_level)
+	refresh_player_unit_bonuses()
 
 func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
@@ -266,6 +267,8 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 	unit.attack_range = data["attack_range"]
 	unit.set_meta("base_max_hp", unit.max_hp)
 	unit.set_meta("base_damage", unit.damage)
+	unit.set_meta("base_attack_cooldown", unit.attack_cooldown)
+	unit.set_meta("base_attack_range", unit.attack_range)
 	
 	apply_star_level_to_unit(unit, star_level)
 	unit.current_hp = unit.max_hp
@@ -286,6 +289,8 @@ func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
 		unit.set_star_level(star_level)
 	var base_max_hp = unit.get_meta("base_max_hp", unit.max_hp)
 	var base_damage = unit.get_meta("base_damage", unit.damage)
+	unit.attack_cooldown = unit.get_meta("base_attack_cooldown", unit.attack_cooldown)
+	unit.attack_range = unit.get_meta("base_attack_range", unit.attack_range)
 	match star_level:
 		1:
 			unit.max_hp = base_max_hp
@@ -301,6 +306,80 @@ func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
 			return
 		_:
 			return
+
+func get_player_faction_counts() -> Dictionary:
+	var counts: Dictionary = {}
+	for entry in player_roster:
+		var unit_id = entry.get("unit_id", "")
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		if data.is_empty():
+			continue
+		var faction = data.get("faction", "")
+		if faction == "":
+			continue
+		counts[faction] = counts.get(faction, 0) + 1
+	return counts
+
+func get_active_faction_bonuses() -> Dictionary:
+	var counts = get_player_faction_counts()
+	var bonuses: Dictionary = {}
+	if counts.get("Romans", 0) >= 2:
+		bonuses["Romans"] = {"max_hp_multiplier": 1.2}
+	if counts.get("Vikings", 0) >= 2:
+		bonuses["Vikings"] = {"damage_multiplier": 1.2}
+	if counts.get("Mongols", 0) >= 2:
+		bonuses["Mongols"] = {"attack_range_multiplier": 1.15}
+	if counts.get("Slavs", 0) >= 2:
+		bonuses["Slavs"] = {"attack_cooldown_multiplier": 0.85}
+	return bonuses
+
+func apply_faction_bonuses_to_unit(unit: CharacterBody3D, unit_id: String) -> void:
+	if unit.team_id != 0:
+		return
+
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	if data.is_empty():
+		return
+
+	var faction = data.get("faction", "")
+	var bonuses = get_active_faction_bonuses()
+	if not bonuses.has(faction):
+		return
+
+	var bonus = bonuses[faction]
+	unit.max_hp *= bonus.get("max_hp_multiplier", 1.0)
+	unit.damage *= bonus.get("damage_multiplier", 1.0)
+	unit.attack_range *= bonus.get("attack_range_multiplier", 1.0)
+	unit.attack_cooldown *= bonus.get("attack_cooldown_multiplier", 1.0)
+
+func refresh_player_unit_bonuses() -> void:
+	var units := get_tree().get_nodes_in_group("units")
+	var active_bonuses = get_active_faction_bonuses()
+	for unit in units:
+		if not is_instance_valid(unit) or unit.is_queued_for_deletion():
+			continue
+		if unit.team_id != 0 or not unit.has_meta("roster_id"):
+			continue
+
+		var roster_id = unit.get_meta("roster_id")
+		var roster_entry = null
+		for entry in player_roster:
+			if entry.get("roster_id", -1) == roster_id:
+				roster_entry = entry
+				break
+
+		if roster_entry == null:
+			continue
+
+		var unit_id = roster_entry.get("unit_id", "")
+		var star_level = roster_entry.get("star_level", 1)
+		apply_star_level_to_unit(unit, star_level)
+		apply_faction_bonuses_to_unit(unit, unit_id)
+		unit.set_meta("star_level", star_level)
+		unit.current_hp = min(unit.current_hp, unit.max_hp)
+
+	if not active_bonuses.is_empty():
+		print("Active faction bonuses: ", active_bonuses.keys())
 
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
@@ -417,6 +496,7 @@ func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 
 	bench_units.remove_at(selected_bench_index)
 	selected_bench_index = -1
+	refresh_player_unit_bonuses()
 	update_bench_ui()
 	update_unit_cap_label()
 	clear_all_selection()
@@ -816,11 +896,10 @@ func try_merge_deployed_unit_with_bench() -> bool:
 		var upgraded_star = star_level + 1
 		player_roster[roster_index]["star_level"] = upgraded_star
 		var roster_id = roster_entry.get("roster_id", -1)
+		refresh_player_unit_bonuses()
 		var unit = find_player_unit_by_roster_id(roster_id)
 		if unit:
-			apply_star_level_to_unit(unit, upgraded_star)
 			unit.current_hp = unit.max_hp
-			unit.set_meta("star_level", upgraded_star)
 
 		var data: Dictionary = unit_database.get_unit_data(unit_id)
 		print("Merged deployed %s into %d-star" % [data.get("name", unit_id), upgraded_star])
@@ -834,6 +913,8 @@ func find_player_unit_by_roster_id(roster_id: int) -> CharacterBody3D:
 
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
+		if unit.is_queued_for_deletion():
+			continue
 		if unit.team_id == 0 and unit.has_meta("roster_id") and unit.get_meta("roster_id") == roster_id:
 			return unit
 
@@ -920,6 +1001,7 @@ func _on_sell_unit_button_pressed() -> void:
 	player_roster.remove_at(roster_index)
 	selected_unit.queue_free()
 	clear_all_selection()
+	refresh_player_unit_bonuses()
 	
 	update_gold_label()
 	update_unit_cap_label()
