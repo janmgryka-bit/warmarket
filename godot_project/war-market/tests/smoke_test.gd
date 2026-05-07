@@ -34,6 +34,7 @@ func _init() -> void:
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
 	await run_test("Game over after loss", Callable(self, "test_game_over_after_loss"))
 	await run_test("Reset game new run", Callable(self, "test_reset_game_new_run"))
+	await run_test("Enemy wave spawning", Callable(self, "test_enemy_wave_spawning"))
 	await run_test("Next round bonus", Callable(self, "test_next_round_bonus"))
 
 	print("SMOKE TEST PASSED")
@@ -220,6 +221,27 @@ func test_reset_game_new_run() -> void:
 	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared")
 	assert_true(game.player_roster.size() > 0, "Starting units should be spawned")
 	assert_true(not game.restart_button.visible, "Restart button should be hidden after reset")
+
+func test_enemy_wave_spawning() -> void:
+	var game = await load_game()
+	
+	# Clear existing enemy units from initial setup
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == 1:
+			unit.queue_free()
+	await process_frame
+	
+	# Spawn round 5 enemies (which should have 5 units)
+	game.spawn_enemy_wave(5)
+	await process_frame
+	
+	# Count enemy units
+	var enemy_count = 0
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == 1:
+			enemy_count += 1
+	
+	assert_eq(enemy_count, 5, "Round 5 should spawn exactly 5 enemy units")
 
 func test_next_round_bonus() -> void:
 	var game = await load_game()

@@ -66,6 +66,36 @@ var shop_unit_ids: Array[String] = [
 var shop_offer_count: int = 3
 var current_shop_offers: Array[String] = []
 var sold_shop_offer_indices: Array[int] = []
+
+# Enemy wave definitions by round
+var enemy_wave_definitions: Dictionary = {
+	1: [
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)}
+	],
+	2: [
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)}
+	],
+	3: [
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)}
+	],
+	4: [
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)},
+		{"unit_id": "slav_hunter", "grid_pos": Vector2i(3, 1)}
+	],
+	5: [
+		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)},
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(6, 1)},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 1)},
+		{"unit_id": "slav_hunter", "grid_pos": Vector2i(3, 1)},
+		{"unit_id": "roman_spearman", "grid_pos": Vector2i(2, 1)}
+	]
+}
+
 var player_roster: Array[Dictionary] = []
 var roster_id_counter: int = 0
 var round_number: int = 1
@@ -132,15 +162,23 @@ func spawn_enemy_test_units() -> void:
 	spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
 
 func spawn_enemy_wave(round_num: int) -> void:
-	if round_num == 1:
-		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
-	elif round_num == 2:
-		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
-		spawn_unit_by_id("viking_berserker", 1, Vector2i(6, 1))
+	# Get wave definition for this round
+	# Use exact definition if it exists, otherwise use the highest available
+	var wave_def: Array = []
+	
+	if round_num in enemy_wave_definitions:
+		wave_def = enemy_wave_definitions[round_num]
 	else:
-		spawn_unit_by_id("viking_berserker", 1, Vector2i(5, 1))
-		spawn_unit_by_id("viking_berserker", 1, Vector2i(6, 1))
-		spawn_unit_by_id("roman_archer", 1, Vector2i(4, 1))
+		# Use the highest available definition for rounds beyond defined ones
+		var max_defined_round = 5
+		if max_defined_round in enemy_wave_definitions:
+			wave_def = enemy_wave_definitions[max_defined_round]
+	
+	# Spawn all units in the wave definition
+	for entry in wave_def:
+		var unit_id = entry.get("unit_id", "")
+		var grid_pos = entry.get("grid_pos", Vector2i(0, 0))
+		spawn_unit_by_id(unit_id, 1, grid_pos)
 
 func roll_shop_offers() -> void:
 	current_shop_offers.clear()
