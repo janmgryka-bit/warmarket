@@ -208,17 +208,21 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 	
 	apply_star_level_to_unit(unit, star_level)
 	unit.current_hp = unit.max_hp
-	
+
 	units_container.add_child(unit)
 	unit.unit_clicked.connect(_on_unit_clicked)
 	place_unit_on_grid(unit, grid_pos)
 	unit.set_meta("star_level", star_level)
-	
+	if unit.has_method("set_star_level"):
+		unit.set_star_level(star_level)
+
 	print("Spawned unit: ", data["name"], " / faction: ", data["faction"], " / star: ", star_level)
-	
+
 	return unit
 
 func apply_star_level_to_unit(unit: CharacterBody3D, star_level: int) -> void:
+	if unit.has_method("set_star_level"):
+		unit.set_star_level(star_level)
 	match star_level:
 		1:
 			return
@@ -623,7 +627,12 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	print("Bought ", data["name"], " to bench for ", cost, " gold")
 
 func try_merge_bench_units() -> void:
+	var merged_any = false
 	while true:
+		if try_merge_deployed_unit_with_bench():
+			merged_any = true
+			continue
+
 		var merge_sets: Dictionary = {}
 		for i in range(bench_units.size()):
 			var entry = bench_units[i]
@@ -646,10 +655,61 @@ func try_merge_bench_units() -> void:
 				var data: Dictionary = unit_database.get_unit_data(unit_id)
 				print("Merged 3x %s into 2-star" % data.get("name", unit_id))
 				found_merge = true
+				merged_any = true
 				break
 
 		if not found_merge:
 			break
+
+	if merged_any:
+		update_bench_ui()
+		update_unit_cap_label()
+
+func try_merge_deployed_unit_with_bench() -> bool:
+	for roster_index in range(player_roster.size()):
+		var roster_entry = player_roster[roster_index]
+		var unit_id = roster_entry.get("unit_id", "")
+		var star_level = roster_entry.get("star_level", 1)
+		if unit_id == "" or star_level != 1:
+			continue
+
+		var bench_indices: Array[int] = []
+		for bench_index in range(bench_units.size()):
+			var bench_entry = bench_units[bench_index]
+			if bench_entry.get("unit_id", "") == unit_id and bench_entry.get("star_level", 1) == 1:
+				bench_indices.append(bench_index)
+				if bench_indices.size() == 2:
+					break
+
+		if bench_indices.size() < 2:
+			continue
+
+		for i in range(bench_indices.size() - 1, -1, -1):
+			bench_units.remove_at(bench_indices[i])
+
+		player_roster[roster_index]["star_level"] = 2
+		var roster_id = roster_entry.get("roster_id", -1)
+		var unit = find_player_unit_by_roster_id(roster_id)
+		if unit:
+			apply_star_level_to_unit(unit, 2)
+			unit.set_meta("star_level", 2)
+
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		print("Merged deployed %s into 2-star" % data.get("name", unit_id))
+		return true
+
+	return false
+
+func find_player_unit_by_roster_id(roster_id: int) -> CharacterBody3D:
+	if roster_id < 0:
+		return null
+
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if unit.team_id == 0 and unit.has_meta("roster_id") and unit.get_meta("roster_id") == roster_id:
+			return unit
+
+	return null
 
 func _on_reroll_button_pressed() -> void:
 	if not is_preparation_phase():
