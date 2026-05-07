@@ -24,6 +24,7 @@ func run_test(test_name: String, test_function: Callable) -> void:
 func _init() -> void:
 	print("Starting smoke test...")
 	await run_test("Initial state", Callable(self, "test_initial_state"))
+	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Reroll", Callable(self, "test_reroll"))
 	await run_test("Buy to bench", Callable(self, "test_buy_to_bench"))
 	await run_test("Sold slot", Callable(self, "test_sold_slot"))
@@ -62,6 +63,40 @@ func test_initial_state() -> void:
 	assert_eq(game.round_number, 1, "Round should start at 1")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop should show the configured number of offers")
 	assert_eq(game.bench_units.size(), 0, "Bench should be empty at start")
+	assert_eq(game.player_level, 1, "Player should start at level 1")
+	assert_eq(game.player_xp, 0, "Player should start with 0 XP")
+	assert_eq(game.max_player_units, 2, "Level 1 should allow 2 deployed units")
+	assert_eq(game.player_level_label.text, "Level: 1 (0/2 XP)", "Player level label should show initial XP progress")
+
+func test_buy_xp() -> void:
+	var game = await load_game()
+	var gold_before = game.player_gold
+	game._on_buy_xp_button_pressed()
+	assert_eq(game.player_gold, gold_before - game.xp_purchase_cost, "Buying XP should subtract XP purchase cost")
+	assert_eq(game.player_level, 2, "Buying 4 XP at level 1 should level up to 2")
+	assert_eq(game.player_xp, 2, "Remaining XP should carry toward the next level")
+	assert_eq(game.max_player_units, 3, "Level 2 should increase deployed unit cap to 3")
+	assert_eq(game.unit_cap_label.text, "Units: 2 / 3", "Unit cap label should update after leveling")
+
+	game.player_gold = 0
+	gold_before = game.player_gold
+	var level_before = game.player_level
+	var xp_before = game.player_xp
+	game._on_buy_xp_button_pressed()
+	assert_eq(game.player_gold, gold_before, "Buying XP without gold should not change gold")
+	assert_eq(game.player_level, level_before, "Buying XP without gold should not change level")
+	assert_eq(game.player_xp, xp_before, "Buying XP without gold should not change XP")
+
+	game.player_gold = 100
+	game.player_level = game.max_player_level
+	game.player_xp = 0
+	game.update_max_player_units()
+	game.update_player_level_label()
+	gold_before = game.player_gold
+	game._on_buy_xp_button_pressed()
+	assert_eq(game.player_gold, gold_before, "Buying XP at max level should not spend gold")
+	assert_eq(game.player_level, game.max_player_level, "Buying XP at max level should not change level")
+	assert_eq(game.player_xp, 0, "Buying XP at max level should not add XP")
 
 func test_reroll() -> void:
 	var game = await load_game()
@@ -143,6 +178,7 @@ func test_bench_merge_to_three_star() -> void:
 
 func test_two_star_deployed_unit() -> void:
 	var game = await load_game()
+	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
 	for i in range(3):
 		game.bench_units.append({"unit_id": unit_id, "star_level": 1})
@@ -165,6 +201,7 @@ func test_two_star_deployed_unit() -> void:
 
 func test_deployed_merge_to_two_star() -> void:
 	var game = await load_game()
+	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
 	game.bench_units.append({"unit_id": unit_id, "star_level": 1})
 	var tile = find_empty_player_tile(game)
@@ -194,6 +231,7 @@ func test_deployed_merge_to_two_star() -> void:
 
 func test_deployed_merge_to_three_star() -> void:
 	var game = await load_game()
+	buy_xp_for_extra_unit_cap(game)
 	var unit_id = "roman_spearman"
 	game.bench_units.append({"unit_id": unit_id, "star_level": 2})
 	var tile = find_empty_player_tile(game)
@@ -227,6 +265,7 @@ func test_deployed_merge_to_three_star() -> void:
 
 func test_bench_deploy() -> void:
 	var game = await load_game()
+	buy_xp_for_extra_unit_cap(game)
 	var offer_index = find_affordable_shop_offer(game)
 	assert_true(offer_index >= 0, "No affordable shop offer found for bench deploy setup")
 	game._on_shop_card_pressed(game.current_shop_offers[offer_index], offer_index)
@@ -337,6 +376,9 @@ func test_reset_game_new_run() -> void:
 	assert_eq(game.player_gold, initial_gold, "Player gold should be reset to starting gold")
 	assert_eq(game.round_number, initial_round, "Round number should be reset to 1")
 	assert_eq(game.bench_units.size(), initial_bench_size, "Bench should be empty after reset")
+	assert_eq(game.player_level, 1, "Player level should reset to 1 after new run")
+	assert_eq(game.player_xp, 0, "Player XP should reset after new run")
+	assert_eq(game.max_player_units, 2, "Unit cap should reset from level after new run")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Fresh shop offers should be rolled")
 	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared")
 	assert_true(game.player_roster.size() > 0, "Starting units should be spawned")
@@ -422,3 +464,9 @@ func find_roster_entry(game, roster_id: int):
 		if entry.get("roster_id", -1) == roster_id:
 			return entry
 	return null
+
+func buy_xp_for_extra_unit_cap(game) -> void:
+	if game.player_roster.size() < game.max_player_units:
+		return
+	game._on_buy_xp_button_pressed()
+	assert_true(game.player_roster.size() < game.max_player_units, "Buying XP should create room for one more deployed unit")

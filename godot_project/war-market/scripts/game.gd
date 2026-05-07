@@ -8,8 +8,10 @@ extends Node3D
 @onready var round_result_label: Label = $UI/HudContainer/RoundResultLabel
 @onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/HudContainer/GoldLabel
+@onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
 @onready var round_label: Label = $UI/HudContainer/RoundLabel
 @onready var reroll_button: Button = $UI/HudContainer/RerollButton
+@onready var buy_xp_button: Button = $UI/HudContainer/BuyXPButton
 @onready var sell_unit_button: Button = $UI/HudContainer/SellUnitButton
 @onready var unit_cap_label: Label = $UI/HudContainer/UnitCapLabel
 @onready var player_health_label: Label = $UI/HudContainer/PlayerHealthLabel
@@ -49,7 +51,12 @@ var round_income: int = 5
 var reroll_cost: int = 2
 var win_bonus_gold: int = 2
 var draw_bonus_gold: int = 1
-var max_player_units: int = 5
+var player_level: int = 1
+var player_xp: int = 0
+var xp_per_purchase: int = 4
+var xp_purchase_cost: int = 4
+var max_player_level: int = 6
+var max_player_units: int = 2
 var player_gold: int = starting_gold
 var starting_player_health: int = 20
 var player_health: int = starting_player_health
@@ -127,6 +134,8 @@ func _ready() -> void:
 
 	update_gold_label()
 	update_player_health_label()
+	update_max_player_units()
+	update_player_level_label()
 	spawn_test_units()
 	roll_shop_offers()
 	populate_shop()
@@ -511,6 +520,20 @@ func clear_units() -> void:
 func update_player_health_label() -> void:
 	player_health_label.text = "HP: %d" % player_health
 
+func get_xp_required_for_next_level() -> int:
+	if player_level >= max_player_level:
+		return 0
+	return player_level * 2
+
+func update_max_player_units() -> void:
+	max_player_units = player_level + 1
+
+func update_player_level_label() -> void:
+	if player_level >= max_player_level:
+		player_level_label.text = "Level: %d (MAX)" % player_level
+		return
+	player_level_label.text = "Level: %d (%d/%d XP)" % [player_level, player_xp, get_xp_required_for_next_level()]
+
 func trigger_game_over() -> void:
 	game_over = true
 	battle_started = false
@@ -539,6 +562,9 @@ func reset_game() -> void:
 	last_round_result = ""
 	player_gold = starting_gold
 	player_health = starting_player_health
+	player_level = 1
+	player_xp = 0
+	update_max_player_units()
 	
 	# Clear rosters and bench
 	player_roster.clear()
@@ -557,6 +583,7 @@ func reset_game() -> void:
 	# Update UI labels
 	update_gold_label()
 	update_player_health_label()
+	update_player_level_label()
 	update_unit_cap_label()
 	update_bench_ui()
 	round_label.text = "Round: %d" % round_number
@@ -603,6 +630,40 @@ func populate_shop() -> void:
 func clear_shop() -> void:
 	for child in shop_items.get_children():
 		child.queue_free()
+
+func _on_buy_xp_button_pressed() -> void:
+	if not is_preparation_phase():
+		print("Cannot buy XP outside preparation phase")
+		return
+
+	if player_level >= max_player_level:
+		print("Player is already at max level")
+		return
+
+	if player_gold < xp_purchase_cost:
+		print("Cannot afford XP. Need ", xp_purchase_cost, " gold, have ", player_gold)
+		return
+
+	player_gold -= xp_purchase_cost
+	player_xp += xp_per_purchase
+	print("Bought ", xp_per_purchase, " XP for ", xp_purchase_cost, " gold")
+
+	while player_level < max_player_level:
+		var required_xp = get_xp_required_for_next_level()
+		if player_xp < required_xp:
+			break
+
+		player_xp -= required_xp
+		player_level += 1
+		update_max_player_units()
+		print("Player leveled up to ", player_level, ". Unit cap: ", max_player_units)
+
+	if player_level >= max_player_level:
+		player_xp = 0
+
+	update_gold_label()
+	update_player_level_label()
+	update_unit_cap_label()
 
 func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	if not is_preparation_phase():
