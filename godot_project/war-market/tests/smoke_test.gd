@@ -679,14 +679,38 @@ func test_mirror_army_button() -> void:
 	assert_true(not game.use_snapshot_opponent, "New run should disable snapshot opponent mode")
 	assert_true(game.opponent_army_snapshot.is_empty(), "New run should clear opponent army snapshot")
 
+func test_interest_gold() -> void:
+	var game = await load_game()
+	game.player_gold = 0
+	assert_eq(game.calculate_interest_gold(), 0, "0 gold should earn no interest")
+	game.player_gold = 9
+	assert_eq(game.calculate_interest_gold(), 0, "9 gold should earn no interest")
+	game.player_gold = 10
+	assert_eq(game.calculate_interest_gold(), 1, "10 gold should earn 1 interest")
+	game.player_gold = 29
+	assert_eq(game.calculate_interest_gold(), 2, "29 gold should earn 2 interest")
+	game.player_gold = 99
+	assert_eq(game.calculate_interest_gold(), game.interest_cap, "Interest should be capped")
+
+	var gold_before := 29
+	game.player_gold = gold_before
+	game.last_round_result = "PLAYER WINS"
+	game.restart_round()
+	assert_eq(
+		game.player_gold,
+		gold_before + game.round_income + game.win_bonus_gold + 2,
+		"Next round should add income, win bonus, and pre-income interest"
+	)
+
 func test_next_round_bonus() -> void:
 	var game = await load_game()
 	var round_before = game.round_number
 	var gold_before = game.player_gold
+	var interest_before = game.calculate_interest_gold()
 	game.last_round_result = "PLAYER WINS"
 	game.restart_round()
 	assert_eq(game.round_number, round_before + 1, "Round number should increase on restart")
-	assert_eq(game.player_gold, gold_before + game.round_income + game.win_bonus_gold, "Gold should include income and win bonus")
+	assert_eq(game.player_gold, gold_before + game.round_income + game.win_bonus_gold + interest_before, "Gold should include income, win bonus, and interest")
 	assert_eq(game.current_shop_offers.size(), game.shop_offer_count, "Shop offers should refresh after next round")
 	assert_eq(game.sold_shop_offer_indices.size(), 0, "Sold shop slots should be cleared after next round")
 

@@ -68,6 +68,7 @@ var round_income: int = 5
 var reroll_cost: int = 2
 var win_bonus_gold: int = 2
 var draw_bonus_gold: int = 1
+var interest_cap: int = 5
 var player_level: int = 1
 var player_xp: int = 0
 var xp_per_purchase: int = 4
@@ -909,6 +910,9 @@ func _on_restart_round_button_pressed() -> void:
 	else:
 		restart_round()
 
+func calculate_interest_gold() -> int:
+	return min(int(floor(float(player_gold) / 10.0)), interest_cap)
+
 func restart_round() -> void:
 	if game_over or victory:
 		print("Cannot restart round after run has ended")
@@ -922,16 +926,17 @@ func restart_round() -> void:
 	reset_battle_speed()
 	clear_all_selection()
 	round_number += 1
-	player_gold += round_income
 	
+	var result_bonus := 0
 	if last_round_result == "PLAYER WINS":
-		player_gold += win_bonus_gold
-		add_event_log("Next round: +%dg income, +%dg win bonus" % [round_income, win_bonus_gold])
+		result_bonus = win_bonus_gold
 	elif last_round_result == "DRAW":
-		player_gold += draw_bonus_gold
-		add_event_log("Next round: +%dg income, +%dg draw bonus" % [round_income, draw_bonus_gold])
-	else:
-		add_event_log("Next round: +%dg income" % round_income)
+		result_bonus = draw_bonus_gold
+	
+	var interest := calculate_interest_gold()
+	player_gold += round_income + result_bonus + interest
+	print("Round income: ", round_income, " + bonus: ", result_bonus, " + interest: ", interest)
+	add_event_log("Next round: +%dg income, +%dg bonus, +%dg interest" % [round_income, result_bonus, interest])
 	
 	last_round_result = ""
 	
