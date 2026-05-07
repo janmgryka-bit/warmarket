@@ -20,6 +20,10 @@ var crack_color: Color = Color(0.16, 0.17, 0.16)
 var center_divider_color: Color = Color(0.58, 0.48, 0.27)
 var player_side_marker_color: Color = Color(0.25, 0.45, 0.62)
 var enemy_side_marker_color: Color = Color(0.60, 0.27, 0.22)
+var platform_base_color: Color = Color(0.23, 0.24, 0.23)
+var platform_side_color: Color = Color(0.16, 0.17, 0.16)
+var frame_stone_color: Color = Color(0.29, 0.30, 0.28)
+var frame_trim_color: Color = Color(0.50, 0.42, 0.25)
 
 func _ready() -> void:
 	print("BOARD SCRIPT DZIALA")
@@ -27,6 +31,8 @@ func _ready() -> void:
 
 func create_board() -> void:
 	var tile_count := 0
+
+	create_arena_platform()
 	
 	for x in range(width):
 		for z in range(height):
@@ -73,6 +79,125 @@ func create_board() -> void:
 	
 	print("UTWORZONO KAFELKOW: ", tile_count)
 
+func create_arena_platform() -> void:
+	var platform := Node3D.new()
+	platform.name = "ArenaPlatform"
+	add_child(platform)
+
+	var board_width := width * tile_size
+	var board_height := height * tile_size
+	var platform_margin := tile_size * 0.42
+	var platform_width := board_width + platform_margin * 2.0
+	var platform_height := board_height + platform_margin * 2.0
+
+	var base := create_platform_block(
+		"ArenaStoneBase",
+		Vector3(platform_width, 0.42, platform_height),
+		Vector3(0.0, 0.30, 0.0),
+		platform_base_color
+	)
+	platform.add_child(base)
+
+	var shadow_side := create_platform_block(
+		"ArenaLowerStone",
+		Vector3(platform_width + 0.18, 0.30, platform_height + 0.18),
+		Vector3(0.0, 0.10, 0.0),
+		platform_side_color
+	)
+	platform.add_child(shadow_side)
+
+	var frame_thickness := tile_size * 0.30
+	var frame_height := 0.32
+	var frame_y := 0.70
+	var frame_z := board_height / 2.0 + frame_thickness / 2.0
+	var frame_x := board_width / 2.0 + frame_thickness / 2.0
+
+	platform.add_child(create_platform_block(
+		"NorthStoneFrame",
+		Vector3(platform_width, frame_height, frame_thickness),
+		Vector3(0.0, frame_y, -frame_z),
+		frame_stone_color
+	))
+	platform.add_child(create_platform_block(
+		"SouthStoneFrame",
+		Vector3(platform_width, frame_height, frame_thickness),
+		Vector3(0.0, frame_y, frame_z),
+		frame_stone_color
+	))
+	platform.add_child(create_platform_block(
+		"WestStoneFrame",
+		Vector3(frame_thickness, frame_height, board_height),
+		Vector3(-frame_x, frame_y, 0.0),
+		frame_stone_color
+	))
+	platform.add_child(create_platform_block(
+		"EastStoneFrame",
+		Vector3(frame_thickness, frame_height, board_height),
+		Vector3(frame_x, frame_y, 0.0),
+		frame_stone_color
+	))
+
+	create_platform_corner_supports(platform, frame_x, frame_z)
+	create_platform_trim(platform, platform_width, platform_height)
+
+func create_platform_block(block_name: String, block_size: Vector3, block_position: Vector3, color: Color) -> MeshInstance3D:
+	var block := MeshInstance3D.new()
+	block.name = block_name
+	var mesh := BoxMesh.new()
+	mesh.size = block_size
+	block.mesh = mesh
+	block.position = block_position
+	block.material_override = create_stone_material(color)
+	return block
+
+func create_platform_corner_supports(platform: Node3D, frame_x: float, frame_z: float) -> void:
+	var corner_positions: Array[Vector3] = [
+		Vector3(-frame_x, 0.54, -frame_z),
+		Vector3(frame_x, 0.54, -frame_z),
+		Vector3(-frame_x, 0.54, frame_z),
+		Vector3(frame_x, 0.54, frame_z),
+	]
+	for index in range(corner_positions.size()):
+		var support := create_platform_block(
+			"CornerSupport_%s" % index,
+			Vector3(tile_size * 0.48, 0.72, tile_size * 0.48),
+			corner_positions[index],
+			frame_stone_color.darkened(0.08)
+		)
+		platform.add_child(support)
+
+func create_platform_trim(platform: Node3D, platform_width: float, platform_height: float) -> void:
+	var trim_height := 0.05
+	var trim_width := 0.08
+	var trim_y := 0.90
+	var trim_z := platform_height / 2.0 - tile_size * 0.20
+	var trim_x := platform_width / 2.0 - tile_size * 0.20
+
+	platform.add_child(create_platform_block(
+		"NorthMetalTrim",
+		Vector3(platform_width - tile_size * 0.38, trim_height, trim_width),
+		Vector3(0.0, trim_y, -trim_z),
+		frame_trim_color
+	))
+	platform.add_child(create_platform_block(
+		"SouthMetalTrim",
+		Vector3(platform_width - tile_size * 0.38, trim_height, trim_width),
+		Vector3(0.0, trim_y, trim_z),
+		frame_trim_color
+	))
+	platform.add_child(create_platform_block(
+		"WestMetalTrim",
+		Vector3(trim_width, trim_height, platform_height - tile_size * 0.38),
+		Vector3(-trim_x, trim_y, 0.0),
+		frame_trim_color
+	))
+	platform.add_child(create_platform_block(
+		"EastMetalTrim",
+		Vector3(trim_width, trim_height, platform_height - tile_size * 0.38),
+		Vector3(trim_x, trim_y, 0.0),
+		frame_trim_color
+	))
+
 func create_tile_slab(grid_pos: Vector2i) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = "StoneSlab"
@@ -99,9 +224,10 @@ func create_side_marker(grid_pos: Vector2i) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(tile_size * 0.54, 0.025, 0.045)
 	marker.mesh = mesh
-	var marker_z := tile_size * 0.34 if grid_pos.y >= height / 2 else -tile_size * 0.34
+	var player_start_y := floori(float(height) / 2.0)
+	var marker_z := tile_size * 0.34 if grid_pos.y >= player_start_y else -tile_size * 0.34
 	marker.position = Vector3(0.0, 0.145, marker_z)
-	var marker_color := player_side_marker_color if grid_pos.y >= height / 2 else enemy_side_marker_color
+	var marker_color := player_side_marker_color if grid_pos.y >= player_start_y else enemy_side_marker_color
 	marker.material_override = create_stone_material(marker_color.darkened(0.12))
 	return marker
 
@@ -122,7 +248,8 @@ func create_crack_marker(grid_pos: Vector2i) -> MeshInstance3D:
 	return null
 
 func create_center_divider_marker(grid_pos: Vector2i) -> MeshInstance3D:
-	if grid_pos.y != height / 2 - 1:
+	var player_start_y := floori(float(height) / 2.0)
+	if grid_pos.y != player_start_y - 1:
 		return null
 	var divider := MeshInstance3D.new()
 	divider.name = "CenterDivider"
@@ -137,7 +264,8 @@ func get_tile_stone_color(grid_pos: Vector2i) -> Color:
 	var color := stone_light_color if (grid_pos.x + grid_pos.y) % 2 == 0 else stone_dark_color
 	var variation := float((grid_pos.x * 11 + grid_pos.y * 7) % 5) * 0.015
 	color = color.lightened(variation)
-	if grid_pos.y >= height / 2:
+	var player_start_y := floori(float(height) / 2.0)
+	if grid_pos.y >= player_start_y:
 		return color.lerp(player_side_tint, 0.14)
 	return color.lerp(enemy_side_tint, 0.13)
 

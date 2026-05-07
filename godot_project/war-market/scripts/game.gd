@@ -910,7 +910,7 @@ func get_valid_player_empty_tiles() -> Array[Vector2i]:
 	if board != null:
 		board_width = int(board.width)
 		board_height = int(board.height)
-	var player_start_y := int(board_height / 2)
+	var player_start_y := floori(float(board_height) / 2.0)
 	
 	for y in range(player_start_y, board_height):
 		for x in range(board_width):
