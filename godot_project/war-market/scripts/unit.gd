@@ -4,6 +4,7 @@ signal unit_clicked(unit)
 
 @export var unit_name: String = "Unit"
 @export var team_id: int = 0
+@export var faction: String = "Romans"
 @export var role: String = "Fighter"
 
 var grid_position: Vector2i = Vector2i(-1, -1)
@@ -35,6 +36,7 @@ func _ready() -> void:
 	add_to_group("units")
 	apply_team_color()
 	apply_role_shape()
+	apply_visual_attachments()
 	setup_health_bar()
 	update_health_bar()
 	set_star_level(star_level)
@@ -312,6 +314,138 @@ func apply_role_shape() -> void:
 			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
 		_:
 			body_mesh.scale = Vector3(1.0, 1.0, 1.0)
+
+func apply_visual_attachments() -> void:
+	clear_visual_attachments()
+	var attachments := Node3D.new()
+	attachments.name = "VisualAttachments"
+	add_child(attachments)
+
+	add_faction_accent_band(attachments)
+	match role:
+		"Tank":
+			add_shield_attachment(attachments)
+		"Ranged":
+			add_ranged_attachment(attachments)
+		"Fighter":
+			add_weapon_attachment(attachments)
+		_:
+			add_weapon_attachment(attachments)
+
+func clear_visual_attachments() -> void:
+	var existing := get_node_or_null("VisualAttachments")
+	if existing != null:
+		existing.queue_free()
+
+func add_faction_accent_band(parent: Node3D) -> void:
+	var band := MeshInstance3D.new()
+	band.name = "FactionAccentBand"
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.42
+	mesh.bottom_radius = 0.42
+	mesh.height = 0.07
+	mesh.radial_segments = 10
+	band.mesh = mesh
+	band.position = Vector3(0.0, 0.55, 0.0)
+	band.material_override = create_visual_material(get_faction_accent_color())
+	parent.add_child(band)
+
+func add_shield_attachment(parent: Node3D) -> void:
+	var shield := MeshInstance3D.new()
+	shield.name = "ShieldAttachment"
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.5, 0.58, 0.08)
+	shield.mesh = mesh
+	shield.position = Vector3(-0.42, 0.72, 0.34)
+	shield.rotation_degrees = Vector3(0.0, -15.0, 0.0)
+	shield.material_override = create_visual_material(get_faction_accent_color())
+	parent.add_child(shield)
+
+	var boss := MeshInstance3D.new()
+	boss.name = "ShieldBoss"
+	var boss_mesh := SphereMesh.new()
+	boss_mesh.radius = 0.09
+	boss_mesh.height = 0.12
+	boss_mesh.radial_segments = 8
+	boss_mesh.rings = 4
+	boss.mesh = boss_mesh
+	boss.position = shield.position + Vector3(0.0, 0.02, 0.06)
+	boss.material_override = create_visual_material(get_faction_secondary_color())
+	parent.add_child(boss)
+
+func add_weapon_attachment(parent: Node3D) -> void:
+	var handle := MeshInstance3D.new()
+	handle.name = "WeaponHandle"
+	var handle_mesh := BoxMesh.new()
+	handle_mesh.size = Vector3(0.08, 0.72, 0.08)
+	handle.mesh = handle_mesh
+	handle.position = Vector3(0.45, 0.68, 0.18)
+	handle.rotation_degrees = Vector3(0.0, 0.0, -24.0)
+	handle.material_override = create_visual_material(Color(0.22, 0.15, 0.09))
+	parent.add_child(handle)
+
+	var blade := MeshInstance3D.new()
+	blade.name = "WeaponBlade"
+	var blade_mesh := BoxMesh.new()
+	blade_mesh.size = Vector3(0.12, 0.32, 0.06)
+	blade.mesh = blade_mesh
+	blade.position = Vector3(0.58, 1.02, 0.18)
+	blade.rotation_degrees = handle.rotation_degrees
+	blade.material_override = create_visual_material(get_faction_secondary_color())
+	parent.add_child(blade)
+
+func add_ranged_attachment(parent: Node3D) -> void:
+	var staff := MeshInstance3D.new()
+	staff.name = "BowStaffAttachment"
+	var staff_mesh := BoxMesh.new()
+	staff_mesh.size = Vector3(0.07, 0.95, 0.07)
+	staff.mesh = staff_mesh
+	staff.position = Vector3(0.46, 0.78, 0.1)
+	staff.rotation_degrees = Vector3(0.0, 0.0, -10.0)
+	staff.material_override = create_visual_material(get_faction_accent_color())
+	parent.add_child(staff)
+
+	var string := MeshInstance3D.new()
+	string.name = "BowStringAttachment"
+	var string_mesh := BoxMesh.new()
+	string_mesh.size = Vector3(0.035, 0.82, 0.035)
+	string.mesh = string_mesh
+	string.position = Vector3(0.34, 0.78, 0.1)
+	string.rotation_degrees = Vector3(0.0, 0.0, 8.0)
+	string.material_override = create_visual_material(Color(0.08, 0.07, 0.06))
+	parent.add_child(string)
+
+func get_faction_accent_color() -> Color:
+	match faction:
+		"Romans":
+			return Color(0.68, 0.08, 0.06)
+		"Vikings":
+			return Color(0.17, 0.25, 0.34)
+		"Slavs":
+			return Color(0.24, 0.38, 0.2)
+		"Mongols":
+			return Color(0.68, 0.48, 0.2)
+		_:
+			return Color(0.42, 0.42, 0.38)
+
+func get_faction_secondary_color() -> Color:
+	match faction:
+		"Romans":
+			return Color(0.78, 0.55, 0.22)
+		"Vikings":
+			return Color(0.36, 0.42, 0.48)
+		"Slavs":
+			return Color(0.38, 0.27, 0.14)
+		"Mongols":
+			return Color(0.86, 0.66, 0.3)
+		_:
+			return Color(0.55, 0.55, 0.5)
+
+func create_visual_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.72
+	return material
 
 func set_star_level(value: int) -> void:
 	star_level = value
