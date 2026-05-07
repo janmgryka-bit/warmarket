@@ -17,6 +17,9 @@ extends Node3D
 @onready var action_feedback_label: Label = $UI/MainLayout/RootColumns/CenterArea/ActionFeedbackLabel
 @onready var item_label: Label = $UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent/ItemLabel
 @onready var item_items: HBoxContainer = $UI/MainLayout/RootColumns/RightSidebar/ItemPanel/ItemMargin/ItemContent/ItemScroll/ItemItems
+@onready var bottom_area: VBoxContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea
+@onready var shop_panel: Panel = $UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel
+@onready var shop_margin: MarginContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin
 @onready var shop_items: HBoxContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel/ShopMargin/ShopScroll/ShopItems
 @onready var gold_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/GoldLabel
 @onready var player_level_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/PlayerLevelLabel
@@ -28,6 +31,7 @@ extends Node3D
 @onready var unit_cap_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/UnitCapLabel
 @onready var synergy_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/SynergyLabel
 @onready var player_health_label: Label = $UI/MainLayout/RootColumns/LeftSidebar/PlayerHealthLabel
+@onready var bench_panel: Panel = $UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel
 @onready var bench_label: Label = $UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchLabel
 @onready var bench_items: HBoxContainer = $UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent/BenchScroll/BenchItems
 
@@ -62,6 +66,9 @@ var max_battle_history_entries: int = 20
 var export_battle_summaries: bool = false
 var battle_summary_export_dir: String = "user://battle_summaries"
 var action_feedback_timer: Timer = null
+var arena_bench_root: Node3D = null
+var arena_bench_slot_nodes: Array[Area3D] = []
+var bench_visual_material_cache: Dictionary = {}
 
 # UI Style
 var ui_dark_stone_color: Color = Color(0.10, 0.11, 0.10, 0.92)
@@ -88,6 +95,7 @@ func clear_bench_selection() -> void:
 	selected_bench_index = -1
 	if board != null and board.has_method("clear_tile_highlights"):
 		board.clear_tile_highlights()
+	update_arena_bench()
 
 func clear_item_selection() -> void:
 	selected_item_index = -1
@@ -115,6 +123,219 @@ func clear_action_feedback() -> void:
 		return
 	action_feedback_label.text = ""
 	action_feedback_label.visible = false
+
+func setup_arena_bench() -> void:
+	if board == null:
+		return
+	if bench_panel != null:
+		bench_panel.visible = false
+	arena_bench_root = Node3D.new()
+	arena_bench_root.name = "ArenaBench3D"
+	board.add_child(arena_bench_root)
+	update_arena_bench()
+
+func update_arena_bench() -> void:
+	if arena_bench_root == null or not is_instance_valid(arena_bench_root):
+		return
+	for child in arena_bench_root.get_children():
+		child.queue_free()
+	arena_bench_slot_nodes.clear()
+
+	var slot_count := max_bench_units
+	var board_width := 8.0 * 1.2
+	var board_height := 8.0 * 1.2
+	if board != null:
+		board_width = float(board.width) * float(board.tile_size)
+		board_height = float(board.height) * float(board.tile_size)
+	var tile_size := 1.2
+	if board != null:
+		tile_size = float(board.tile_size)
+
+	var frame_thickness := tile_size * 0.30
+	var front_frame_z := board_height / 2.0 + frame_thickness / 2.0
+	var dock_depth := tile_size * 0.72
+	var dock_width := board_width - tile_size * 0.22
+	var dock_z := front_frame_z + dock_depth * 0.58
+	var slot_gap := tile_size * 0.08
+	var slot_width := (dock_width - slot_gap * float(slot_count + 1)) / float(slot_count)
+
+	for index in range(slot_count):
+		var slot_x := -dock_width / 2.0 + slot_gap + slot_width / 2.0 + float(index) * (slot_width + slot_gap)
+		var slot_position := Vector3(slot_x, 0.96, dock_z)
+		create_arena_bench_slot(index, slot_position, Vector3(slot_width, 0.05, dock_depth * 0.54))
+
+func create_arena_bench_slot(index: int, slot_position: Vector3, slot_size: Vector3) -> void:
+	var slot_area := Area3D.new()
+	slot_area.name = "ArenaBenchSlot_%d" % index
+	slot_area.position = slot_position
+	slot_area.input_ray_pickable = true
+	slot_area.set_meta("bench_index", index)
+	slot_area.input_event.connect(_on_arena_bench_slot_input_event.bind(index))
+	arena_bench_root.add_child(slot_area)
+	arena_bench_slot_nodes.append(slot_area)
+
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(slot_size.x, 0.18, slot_size.z)
+	collision.shape = shape
+	collision.position = Vector3(0.0, 0.06, 0.0)
+	slot_area.add_child(collision)
+
+	var plate := MeshInstance3D.new()
+	plate.name = "SlotPlate"
+	var mesh := BoxMesh.new()
+	mesh.size = slot_size
+	plate.mesh = mesh
+	plate.position = Vector3.ZERO
+	plate.material_override = create_arena_bench_material(get_arena_bench_slot_color(index))
+	slot_area.add_child(plate)
+
+	var trim := MeshInstance3D.new()
+	trim.name = "SlotTrim"
+	var trim_mesh := BoxMesh.new()
+	trim_mesh.size = Vector3(slot_size.x * 0.94, 0.025, 0.035)
+	trim.mesh = trim_mesh
+	trim.position = Vector3(0.0, 0.04, slot_size.z * 0.39)
+	trim.material_override = create_arena_bench_material(Color(0.58, 0.46, 0.24))
+	slot_area.add_child(trim)
+
+	if index < bench_units.size():
+		create_arena_bench_unit_visual(slot_area, index, slot_size)
+	else:
+		create_arena_bench_empty_placeholder(slot_area, slot_size)
+
+func create_arena_bench_empty_placeholder(slot_area: Area3D, slot_size: Vector3) -> void:
+	var inset := MeshInstance3D.new()
+	inset.name = "EmptySlotInset"
+	var inset_mesh := BoxMesh.new()
+	inset_mesh.size = Vector3(slot_size.x * 0.52, 0.018, slot_size.z * 0.30)
+	inset.mesh = inset_mesh
+	inset.position = Vector3(0.0, 0.055, -slot_size.z * 0.03)
+	inset.material_override = create_arena_bench_material(Color(0.31, 0.28, 0.20, 0.72))
+	slot_area.add_child(inset)
+
+func create_arena_bench_unit_visual(slot_area: Area3D, index: int, slot_size: Vector3) -> void:
+	var entry: Dictionary = bench_units[index]
+	var unit_id: String = entry.get("unit_id", "")
+	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	var faction: String = data.get("faction", "")
+	var role: String = data.get("role", "")
+	var star_level := int(entry.get("star_level", 1))
+	var faction_color: Color = get_faction_card_color(faction)
+
+	var base := MeshInstance3D.new()
+	base.name = "BenchUnitBase"
+	var base_mesh := CylinderMesh.new()
+	base_mesh.top_radius = slot_size.x * 0.20
+	base_mesh.bottom_radius = slot_size.x * 0.23
+	base_mesh.height = 0.055
+	base_mesh.radial_segments = 20
+	base.mesh = base_mesh
+	base.position = Vector3(0.0, 0.085, 0.0)
+	base.material_override = get_bench_visual_material(Color(0.09, 0.08, 0.06).lerp(faction_color, 0.32))
+	slot_area.add_child(base)
+
+	var body := MeshInstance3D.new()
+	body.name = "BenchUnitBody"
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = min(slot_size.x * 0.115, 0.16)
+	body_mesh.height = 0.48
+	body.mesh = body_mesh
+	body.position = Vector3(0.0, 0.34, -slot_size.z * 0.01)
+	body.rotation_degrees.x = 0.0
+	body.material_override = get_bench_visual_material(faction_color.lightened(0.10))
+	slot_area.add_child(body)
+
+	create_arena_bench_role_prop(slot_area, role, faction_color, slot_size)
+	create_arena_bench_star_markers(slot_area, star_level, slot_size)
+
+func create_arena_bench_role_prop(slot_area: Area3D, role: String, faction_color: Color, slot_size: Vector3) -> void:
+	match role:
+		"Tank":
+			var shield := MeshInstance3D.new()
+			shield.name = "BenchTankShield"
+			var shield_mesh := BoxMesh.new()
+			shield_mesh.size = Vector3(slot_size.x * 0.15, 0.20, 0.035)
+			shield.mesh = shield_mesh
+			shield.position = Vector3(-slot_size.x * 0.15, 0.33, slot_size.z * 0.06)
+			shield.material_override = get_bench_visual_material(Color(0.48, 0.43, 0.30).lerp(faction_color, 0.18))
+			slot_area.add_child(shield)
+		"Fighter":
+			var weapon := MeshInstance3D.new()
+			weapon.name = "BenchFighterWeapon"
+			var weapon_mesh := BoxMesh.new()
+			weapon_mesh.size = Vector3(0.035, 0.31, 0.035)
+			weapon.mesh = weapon_mesh
+			weapon.position = Vector3(slot_size.x * 0.15, 0.35, 0.0)
+			weapon.rotation_degrees.z = -26.0
+			weapon.material_override = get_bench_visual_material(Color(0.76, 0.66, 0.42))
+			slot_area.add_child(weapon)
+		"Ranged":
+			var bow := MeshInstance3D.new()
+			bow.name = "BenchRangedBow"
+			var bow_mesh := TorusMesh.new()
+			bow_mesh.inner_radius = 0.050
+			bow_mesh.outer_radius = 0.072
+			bow.mesh = bow_mesh
+			bow.position = Vector3(slot_size.x * 0.15, 0.33, 0.0)
+			bow.scale = Vector3(0.55, 1.25, 0.12)
+			bow.material_override = get_bench_visual_material(Color(0.56, 0.42, 0.22))
+			slot_area.add_child(bow)
+		_:
+			pass
+
+func create_arena_bench_star_markers(slot_area: Area3D, star_level: int, slot_size: Vector3) -> void:
+	var clamped_stars: int = clamp(star_level, 1, 3)
+	var marker_width := slot_size.x * 0.065
+	var start_x := -float(clamped_stars - 1) * marker_width * 0.62
+	for star_index in range(clamped_stars):
+		var marker := MeshInstance3D.new()
+		marker.name = "BenchStarMarker_%d" % star_index
+		var marker_mesh := BoxMesh.new()
+		marker_mesh.size = Vector3(marker_width, 0.026, 0.045)
+		marker.mesh = marker_mesh
+		marker.position = Vector3(start_x + float(star_index) * marker_width * 1.24, 0.075, -slot_size.z * 0.33)
+		marker.material_override = get_bench_visual_material(ui_gold_color)
+		slot_area.add_child(marker)
+
+func get_arena_bench_slot_color(index: int) -> Color:
+	if index == selected_bench_index:
+		return Color(0.42, 0.35, 0.16)
+	if index < bench_units.size():
+		var unit_id = bench_units[index].get("unit_id", "")
+		var data: Dictionary = unit_database.get_unit_data(unit_id)
+		return Color(0.20, 0.18, 0.13).lerp(get_faction_card_color(data.get("faction", "")), 0.26)
+	return Color(0.18, 0.16, 0.12)
+
+func create_arena_bench_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.84
+	material.metallic = 0.0
+	return material
+
+func get_bench_visual_material(color: Color) -> StandardMaterial3D:
+	var cache_key := color.to_html()
+	if bench_visual_material_cache.has(cache_key):
+		return bench_visual_material_cache[cache_key]
+	var material := create_arena_bench_material(color)
+	bench_visual_material_cache[cache_key] = material
+	return material
+
+func _on_arena_bench_slot_input_event(
+	_camera: Camera3D,
+	event: InputEvent,
+	_position: Vector3,
+	_normal: Vector3,
+	_shape_idx: int,
+	index: int
+) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_on_bench_arena_slot_clicked(index)
+
+func _on_bench_arena_slot_clicked(index: int) -> void:
+	_on_bench_unit_pressed(index)
 
 func setup_action_feedback_timer() -> void:
 	action_feedback_timer = Timer.new()
@@ -335,7 +556,7 @@ var roster_id_counter: int = 0
 var round_number: int = 1
 var last_round_result: String = ""
 var bench_units: Array[Dictionary] = []
-var max_bench_units: int = 6
+var max_bench_units: int = 8
 var selected_bench_index: int = -1
 var item_inventory: Array[String] = []
 var selected_item_index: int = -1
@@ -359,8 +580,10 @@ func _ready() -> void:
 		print("RestartRoundButton found")
 	
 	board.tile_clicked.connect(_on_board_tile_clicked)
+	get_viewport().size_changed.connect(update_responsive_arena_layout)
 	setup_action_feedback_timer()
 	apply_ui_style()
+	setup_arena_bench()
 	
 	round_result_label.text = ""
 	restart_button.visible = false
@@ -370,6 +593,7 @@ func _ready() -> void:
 	setup_camera_defaults()
 	apply_camera_zoom()
 	update_camera_zoom_button()
+	update_responsive_arena_layout()
 	clear_action_feedback()
 	add_event_log("New run started")
 
@@ -436,6 +660,37 @@ func setup_camera_defaults() -> void:
 	camera_focus_position = Vector3(0.0, 0.75, 1.65)
 	focus_camera_on_board()
 
+func get_viewport_height() -> int:
+	return int(get_viewport().get_visible_rect().size.y)
+
+func get_compact_layout_factor() -> float:
+	var viewport_height := get_viewport_height()
+	if viewport_height <= 660:
+		return 0.84
+	if viewport_height <= 760:
+		return 0.92
+	return 1.0
+
+func is_compact_layout() -> bool:
+	return get_compact_layout_factor() < 1.0
+
+func update_responsive_arena_layout() -> void:
+	var compact_factor := get_compact_layout_factor()
+	if bottom_area != null:
+		bottom_area.custom_minimum_size = Vector2(0.0, 74.0 if compact_factor < 1.0 else 88.0)
+	if shop_panel != null:
+		shop_panel.custom_minimum_size = Vector2(0.0, 70.0 if compact_factor < 1.0 else 84.0)
+	if shop_margin != null:
+		var margin := 5.0 if compact_factor < 1.0 else 10.0
+		var vertical_margin := 4.0 if compact_factor < 1.0 else 6.0
+		shop_margin.offset_left = margin
+		shop_margin.offset_top = vertical_margin
+		shop_margin.offset_right = -margin
+		shop_margin.offset_bottom = -vertical_margin
+	apply_camera_zoom()
+	update_arena_bench()
+	populate_shop()
+
 func focus_camera_on_board() -> void:
 	if camera == null:
 		return
@@ -444,7 +699,7 @@ func focus_camera_on_board() -> void:
 func apply_camera_zoom() -> void:
 	if camera == null:
 		return
-	var zoom := camera_zoom_levels[camera_zoom_index]
+	var zoom := camera_zoom_levels[camera_zoom_index] * get_compact_layout_factor()
 	var default_offset := default_camera_position - camera_focus_position
 	if default_offset == Vector3.ZERO:
 		default_offset = camera.global_position - camera_focus_position
@@ -1444,7 +1699,7 @@ func populate_shop() -> void:
 			continue
 		
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(180, 80)
+		card.custom_minimum_size = get_shop_card_size()
 		
 		if i in sold_shop_offer_indices:
 			card.text = "SOLD\nRecruit gone"
@@ -1452,13 +1707,7 @@ func populate_shop() -> void:
 			style_sold_card_button(card)
 		else:
 			var can_afford = player_gold >= data["base_price"]
-			card.text = "%s\n%s  %s  T%d\n%dg Recruit" % [
-				data["name"],
-				data["faction"],
-				data["role"],
-				data.get("tier", 1),
-				data["base_price"]
-			]
+			card.text = get_shop_card_text(data)
 			card.disabled = not can_afford
 			style_unit_card_button(card, data.get("faction", ""), not can_afford)
 			card.pressed.connect(_on_shop_card_pressed.bind(unit_id, i))
@@ -1468,6 +1717,28 @@ func populate_shop() -> void:
 func clear_shop() -> void:
 	for child in shop_items.get_children():
 		child.queue_free()
+
+func get_shop_card_size() -> Vector2:
+	if is_compact_layout():
+		return Vector2(138, 56)
+	return Vector2(164, 70)
+
+func get_shop_card_text(data: Dictionary) -> String:
+	if is_compact_layout():
+		return "%s\n%s %s T%d  %dg" % [
+			data["name"],
+			data["faction"],
+			data["role"],
+			data.get("tier", 1),
+			data["base_price"]
+		]
+	return "%s\n%s  %s  T%d\n%dg Recruit" % [
+		data["name"],
+		data["faction"],
+		data["role"],
+		data.get("tier", 1),
+		data["base_price"]
+	]
 
 func _on_buy_xp_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -1882,6 +2153,7 @@ func update_bench_ui() -> void:
 		style_bench_slot_button(button, data.get("faction", ""))
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
+	update_arena_bench()
 
 func get_bench_unit_display_name(entry: Dictionary) -> String:
 	var unit_id = entry.get("unit_id", "")
@@ -1914,4 +2186,5 @@ func _on_bench_unit_pressed(index: int) -> void:
 		board.highlight_tiles(get_valid_player_empty_tiles())
 	var unit_id = bench_units[index].get("unit_id", "")
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
+	update_arena_bench()
 	print("SELECTED BENCH UNIT: ", data.get("name", unit_id), " index: ", selected_bench_index)

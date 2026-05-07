@@ -214,7 +214,7 @@ func create_reserve_dock(platform: Node3D, board_width: float, front_frame_z: fl
 	)
 	platform.add_child(dock)
 
-	var slot_count := 6
+	var slot_count := 8
 	var slot_gap := tile_size * 0.08
 	var slot_width := (dock_width - slot_gap * float(slot_count + 1)) / float(slot_count)
 	for index in range(slot_count):

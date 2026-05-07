@@ -330,11 +330,12 @@ mouse_filter = 2
 
 [node name="BottomArea" type="VBoxContainer" parent="UI/MainLayout/RootColumns/CenterArea"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 156)
+custom_minimum_size = Vector2(0, 104)
 theme_override_constants/separation = 2
 mouse_filter = 2
 
 [node name="BenchPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=2100000001]
+visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 
@@ -353,7 +354,7 @@ theme_override_constants/separation = 2
 
 [node name="BenchLabel" type="Label" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent" unique_id=2100000002]
 layout_mode = 2
-text = "Bench: 0 / 6"
+text = "Bench: 0 / 8"
 
 [node name="BenchScroll" type="ScrollContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/BenchPanel/BenchMargin/BenchContent"]
 layout_mode = 2
@@ -368,7 +369,7 @@ theme_override_constants/separation = 6
 
 [node name="ShopPanel" type="Panel" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea" unique_id=1612883262]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 84)
 
 [node name="ShopMargin" type="MarginContainer" parent="UI/MainLayout/RootColumns/CenterArea/BottomArea/ShopPanel"]
 anchors_preset = 15

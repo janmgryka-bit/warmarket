@@ -48,6 +48,7 @@ func _init() -> void:
 	await run_test("Deployed merge to 3-star", Callable(self, "test_deployed_merge_to_three_star"))
 	await run_test("Bench deploy", Callable(self, "test_bench_deploy"))
 	await run_test("Bench deploy via board click", Callable(self, "test_bench_deploy_via_board_click"))
+	await run_test("Arena bench slot deploy", Callable(self, "test_arena_bench_slot_deploy"))
 	await run_test("Invalid bench deploy", Callable(self, "test_invalid_bench_deploy"))
 	await run_test("Unit cap", Callable(self, "test_unit_cap"))
 	await run_test("Deployed sell", Callable(self, "test_deployed_sell"))
@@ -666,6 +667,29 @@ func test_bench_deploy_via_board_click() -> void:
 	assert_eq(game.board.highlighted_tile_positions.size(), 0, "Board click deploy should clear tile highlights")
 	assert_true(has_player_unit_at_tile(tile), "Board click should spawn the bench unit on the clicked tile")
 	game.board.clear_tile_highlights()
+
+func test_arena_bench_slot_deploy() -> void:
+	var game = await load_game()
+	buy_xp_for_extra_unit_cap(game)
+	game.bench_units.append({"unit_id": "roman_spearman", "star_level": 1})
+	game.update_bench_ui()
+	assert_true(game.arena_bench_root != null, "Arena bench root should exist")
+	assert_eq(game.arena_bench_slot_nodes.size(), game.max_bench_units, "Arena bench should create one slot per bench capacity")
+
+	var tile = find_empty_player_tile(game)
+	assert_true(tile != null, "No empty player tile available for arena bench deploy")
+	var bench_before = game.bench_units.size()
+	var roster_before = game.player_roster.size()
+
+	game._on_bench_arena_slot_clicked(0)
+	assert_eq(game.selected_bench_index, 0, "Arena bench slot should select bench index 0")
+	assert_true(game.board.highlighted_tile_positions.size() > 0, "Arena bench selection should highlight valid tiles")
+	game._on_board_tile_clicked(tile)
+
+	assert_eq(game.bench_units.size(), bench_before - 1, "Arena bench deploy should remove deployed bench unit")
+	assert_eq(game.player_roster.size(), roster_before + 1, "Arena bench deploy should add the unit to player roster")
+	assert_eq(game.selected_bench_index, -1, "Arena bench deploy should clear bench selection")
+	assert_true(has_player_unit_at_tile(tile), "Arena bench deploy should spawn the bench unit on the clicked tile")
 
 func test_invalid_bench_deploy() -> void:
 	var game = await load_game()
