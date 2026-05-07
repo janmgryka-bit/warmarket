@@ -128,20 +128,38 @@ func face_position(target_position: Vector3) -> void:
 func play_attack_visual(target_node: Node3D) -> void:
 	if target_node == null or not is_instance_valid(target_node):
 		return
+	if not is_inside_tree():
+		return
 	
 	if attack_range > 2.0:
 		play_ranged_attack_visual(target_node)
 	else:
 		play_melee_attack_visual(target_node)
 
+func get_effect_parent() -> Node:
+	if not is_inside_tree():
+		return null
+	var tree := get_tree()
+	if tree == null:
+		return null
+	if tree.current_scene != null:
+		return tree.current_scene
+	return get_parent()
+
 func play_ranged_attack_visual(target_node: Node3D) -> void:
+	if target_node == null or not is_instance_valid(target_node):
+		return
+	var effect_parent := get_effect_parent()
+	if effect_parent == null:
+		return
+
 	var projectile := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.08
 	mesh.height = 0.16
 	projectile.mesh = mesh
 	projectile.material_override = create_attack_visual_material(Color(1.0, 0.85, 0.25, 1.0))
-	get_tree().current_scene.add_child(projectile)
+	effect_parent.add_child(projectile)
 	
 	projectile.global_position = global_position + Vector3(0.0, 1.1, 0.0)
 	var target_position := target_node.global_position + Vector3(0.0, 1.0, 0.0)
@@ -151,13 +169,19 @@ func play_ranged_attack_visual(target_node: Node3D) -> void:
 	tween.tween_callback(projectile.queue_free)
 
 func play_melee_attack_visual(target_node: Node3D) -> void:
+	if target_node == null or not is_instance_valid(target_node):
+		return
+	var effect_parent := get_effect_parent()
+	if effect_parent == null:
+		return
+
 	var impact := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.14
 	mesh.height = 0.28
 	impact.mesh = mesh
 	impact.material_override = create_attack_visual_material(Color(1.0, 0.95, 0.55, 1.0))
-	get_tree().current_scene.add_child(impact)
+	effect_parent.add_child(impact)
 	
 	impact.global_position = target_node.global_position + Vector3(0.0, 1.0, 0.0)
 	impact.scale = Vector3(0.4, 0.4, 0.4)
