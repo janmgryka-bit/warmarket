@@ -11,6 +11,8 @@ extends Node3D
 @onready var unit_details_label: Label = $UI/UnitDetailsPanel/UnitDetailsLabel
 @onready var event_log_label: Label = $UI/EventLogPanel/EventLogLabel
 @onready var action_feedback_label: Label = $UI/ActionFeedbackLabel
+@onready var item_label: Label = $UI/ItemPanel/ItemLabel
+@onready var item_items: HBoxContainer = $UI/ItemPanel/ItemItems
 @onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/HudContainer/GoldLabel
 @onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
@@ -46,6 +48,25 @@ var battle_history: Array[Dictionary] = []
 var max_battle_history_entries: int = 20
 var action_feedback_timer: Timer = null
 
+const ITEM_DATABASE := {
+	"training_sword": {
+		"name": "Training Sword",
+		"damage_bonus": 10.0
+	},
+	"wooden_shield": {
+		"name": "Wooden Shield",
+		"max_hp_bonus": 50.0
+	},
+	"longbow": {
+		"name": "Longbow",
+		"attack_range_bonus": 1.0
+	},
+	"war_drum": {
+		"name": "War Drum",
+		"attack_cooldown_multiplier": 0.9
+	}
+}
+
 # Selection Helpers
 func clear_shop_selection() -> void:
 	selected_shop_unit_id = ""
@@ -63,10 +84,14 @@ func clear_bench_selection() -> void:
 	if board != null and board.has_method("clear_tile_highlights"):
 		board.clear_tile_highlights()
 
+func clear_item_selection() -> void:
+	selected_item_index = -1
+
 func clear_all_selection() -> void:
 	clear_shop_selection()
 	clear_unit_selection()
 	clear_bench_selection()
+	clear_item_selection()
 	if board != null and board.has_method("clear_tile_highlights"):
 		board.clear_tile_highlights()
 
@@ -185,6 +210,8 @@ var last_round_result: String = ""
 var bench_units: Array[Dictionary] = []
 var max_bench_units: int = 6
 var selected_bench_index: int = -1
+var item_inventory: Array[String] = []
+var selected_item_index: int = -1
 var use_snapshot_opponent: bool = false
 var opponent_army_snapshot: Array[Dictionary] = []
 
@@ -225,6 +252,7 @@ func _ready() -> void:
 	update_synergy_label()
 	update_bench_ui()
 	update_round_label()
+	update_item_ui()
 
 # Frame Updates
 func _process(_delta: float) -> void:
@@ -276,9 +304,15 @@ func spawn_test_units() -> void:
 	spawn_player_roster()
 	spawn_opponent_army(1)
 
-func add_player_roster_unit(unit_id: String, grid_pos: Vector2i, star_level: int = 1) -> void:
+func add_player_roster_unit(unit_id: String, grid_pos: Vector2i, star_level: int = 1, item_ids: Array[String] = []) -> void:
 	roster_id_counter += 1
-	player_roster.append({"roster_id": roster_id_counter, "unit_id": unit_id, "grid_pos": grid_pos, "star_level": star_level})
+	player_roster.append({
+		"roster_id": roster_id_counter,
+		"unit_id": unit_id,
+		"grid_pos": grid_pos,
+		"star_level": star_level,
+		"item_ids": item_ids.duplicate()
+	})
 	print("Added to roster: ", unit_id, " at ", grid_pos, " id: ", roster_id_counter, " star: ", star_level)
 
 func spawn_player_roster() -> void:
@@ -564,6 +598,19 @@ func apply_role_bonuses_to_unit(unit: CharacterBody3D, unit_id: String) -> void:
 	unit.attack_range *= bonus.get("attack_range_multiplier", 1.0)
 	unit.attack_cooldown *= bonus.get("attack_cooldown_multiplier", 1.0)
 
+func apply_item_bonuses_to_unit(unit: CharacterBody3D, item_ids: Array) -> void:
+	if unit.team_id != 0:
+		return
+
+	for item_id in item_ids:
+		var item_data = get_item_data(item_id)
+		if item_data.is_empty():
+			continue
+		unit.max_hp += item_data.get("max_hp_bonus", 0.0)
+		unit.damage += item_data.get("damage_bonus", 0.0)
+		unit.attack_range += item_data.get("attack_range_bonus", 0.0)
+		unit.attack_cooldown *= item_data.get("attack_cooldown_multiplier", 1.0)
+
 func refresh_player_unit_bonuses() -> void:
 	var units := get_tree().get_nodes_in_group("units")
 	var active_faction_bonuses = get_active_faction_bonuses()
@@ -589,6 +636,7 @@ func refresh_player_unit_bonuses() -> void:
 		apply_star_level_to_unit(unit, star_level)
 		apply_faction_bonuses_to_unit(unit, unit_id)
 		apply_role_bonuses_to_unit(unit, unit_id)
+		apply_item_bonuses_to_unit(unit, roster_entry.get("item_ids", []))
 		unit.set_meta("star_level", star_level)
 		unit.current_hp = min(unit.current_hp, unit.max_hp)
 
@@ -651,6 +699,13 @@ func update_unit_details_panel() -> void:
 		"Cooldown: %.2fs" % selected_unit.attack_cooldown
 	]
 	if selected_unit.team_id == 0:
+		var item_text = "Item: None"
+		var details_roster_entry = get_roster_entry_for_unit(selected_unit)
+		if details_roster_entry != null:
+			var item_ids = details_roster_entry.get("item_ids", [])
+			if not item_ids.is_empty():
+				item_text = "Item: %s" % get_item_name(item_ids[0])
+		lines.append(item_text)
 		lines.append("Sell: %dg" % sell_value)
 
 	unit_details_label.text = "\n".join(lines)
@@ -666,6 +721,10 @@ func _on_unit_clicked(unit: CharacterBody3D) -> void:
 	if unit.team_id != 0:
 		show_action_feedback("Cannot select enemy")
 		print("Cannot select enemy unit")
+		return
+
+	if selected_item_index >= 0:
+		equip_selected_item_to_unit(unit)
 		return
 	
 	clear_shop_selection()
@@ -1063,6 +1122,7 @@ func restart_round() -> void:
 	player_gold += round_income + result_bonus + interest + streak_bonus
 	print("Round income: ", round_income, " + bonus: ", result_bonus, " + interest: ", interest, " + streak: ", streak_bonus)
 	add_event_log("Next round: +%dg income, +%dg bonus, +%dg interest, +%dg streak" % [round_income, result_bonus, interest, streak_bonus])
+	grant_random_item()
 	
 	last_round_result = ""
 	
@@ -1172,6 +1232,7 @@ func reset_game() -> void:
 	battle_history.clear()
 	use_snapshot_opponent = false
 	opponent_army_snapshot.clear()
+	item_inventory.clear()
 	
 	# Clear rosters and bench
 	player_roster.clear()
@@ -1196,6 +1257,7 @@ func reset_game() -> void:
 	update_synergy_label()
 	update_bench_ui()
 	update_round_label()
+	update_item_ui()
 	
 	# Roll fresh shop and populate
 	roll_shop_offers()
@@ -1424,6 +1486,96 @@ func _on_reroll_button_pressed() -> void:
 	populate_shop()
 	print("Rerolled shop for ", reroll_cost, " gold")
 
+func get_item_data(item_id: String) -> Dictionary:
+	return ITEM_DATABASE.get(item_id, {})
+
+func get_item_name(item_id: String) -> String:
+	return get_item_data(item_id).get("name", item_id)
+
+func grant_random_item() -> void:
+	var item_ids = ITEM_DATABASE.keys()
+	if item_ids.is_empty():
+		return
+
+	var item_id = item_ids[randi_range(0, item_ids.size() - 1)]
+	item_inventory.append(item_id)
+	selected_item_index = -1
+	update_item_ui()
+	print("Granted item: ", get_item_name(item_id))
+
+func update_item_ui() -> void:
+	item_label.text = "Items: %d" % item_inventory.size()
+	for child in item_items.get_children():
+		child.queue_free()
+
+	for i in range(item_inventory.size()):
+		var item_id = item_inventory[i]
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(95, 36)
+		button.text = get_item_name(item_id)
+		button.pressed.connect(_on_item_pressed.bind(i))
+		item_items.add_child(button)
+
+func _on_item_pressed(index: int) -> void:
+	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
+		print("Cannot select item outside preparation phase")
+		return
+
+	if index < 0 or index >= item_inventory.size():
+		show_action_feedback("Item unavailable")
+		print("Item index out of range: ", index)
+		return
+
+	clear_shop_selection()
+	clear_bench_selection()
+	clear_unit_selection()
+	selected_item_index = index
+	show_action_feedback("Selected item: %s" % get_item_name(item_inventory[index]))
+	print("SELECTED ITEM: ", get_item_name(item_inventory[index]))
+
+func equip_selected_item_to_unit(unit: CharacterBody3D) -> bool:
+	if selected_item_index < 0 or selected_item_index >= item_inventory.size():
+		return false
+
+	if unit == null or not is_instance_valid(unit) or unit.team_id != 0:
+		show_action_feedback("Select a player unit")
+		return false
+
+	if not unit.has_meta("roster_id"):
+		show_action_feedback("No roster entry")
+		print("Selected unit has no roster entry for item equip")
+		return false
+
+	var roster_id = unit.get_meta("roster_id")
+	var roster_index = -1
+	for i in range(player_roster.size()):
+		if player_roster[i].get("roster_id", -1) == roster_id:
+			roster_index = i
+			break
+
+	if roster_index < 0:
+		show_action_feedback("No roster entry")
+		print("Selected unit has no roster entry for item equip")
+		return false
+
+	var existing_items = player_roster[roster_index].get("item_ids", [])
+	if not existing_items.is_empty():
+		show_action_feedback("Unit already has item")
+		print("Unit already has item: ", existing_items)
+		return false
+
+	var item_id = item_inventory[selected_item_index]
+	item_inventory.remove_at(selected_item_index)
+	player_roster[roster_index]["item_ids"] = [item_id]
+	selected_item_index = -1
+	refresh_player_unit_bonuses()
+	update_item_ui()
+	update_unit_details_panel()
+	show_action_feedback("Equipped: %s" % get_item_name(item_id))
+	print("Equipped ", get_item_name(item_id), " to ", unit.unit_name)
+	return true
+
 func _on_use_self_as_opponent_button_pressed() -> void:
 	if not is_preparation_phase():
 		show_action_feedback(get_blocked_action_feedback())
@@ -1505,6 +1657,8 @@ func _on_sell_unit_button_pressed() -> void:
 		return
 	
 	var deployed_refund = deployed_data["base_price"] * get_star_refund_multiplier(deployed_star)
+	for item_id in roster_entry.get("item_ids", []):
+		item_inventory.append(item_id)
 	
 	player_gold += deployed_refund
 	player_roster.remove_at(roster_index)
@@ -1514,6 +1668,7 @@ func _on_sell_unit_button_pressed() -> void:
 	
 	update_gold_label()
 	update_unit_cap_label()
+	update_item_ui()
 	populate_shop()
 	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
 

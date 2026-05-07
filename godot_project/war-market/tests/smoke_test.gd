@@ -27,6 +27,7 @@ func _init() -> void:
 	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
 	await run_test("Event log", Callable(self, "test_event_log"))
 	await run_test("Action feedback", Callable(self, "test_action_feedback"))
+	await run_test("Items", Callable(self, "test_items"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
@@ -91,6 +92,9 @@ func test_initial_state() -> void:
 	assert_true("New run started" in game.event_log_label.text, "Initial EventLogLabel should show new run started")
 	assert_true(game.action_feedback_label != null, "ActionFeedbackLabel should exist")
 	assert_true(not game.action_feedback_label.visible, "ActionFeedbackLabel should start hidden")
+	assert_true(game.item_label != null, "ItemLabel should exist")
+	assert_eq(game.item_inventory.size(), 0, "Item inventory should start empty")
+	assert_eq(game.item_label.text, "Items: 0", "ItemLabel should show empty inventory")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -158,6 +162,72 @@ func test_action_feedback() -> void:
 	assert_true("Test message" in game.action_feedback_label.text, "Action feedback should show the requested message")
 	game.clear_action_feedback()
 	assert_true(not game.action_feedback_label.visible or game.action_feedback_label.text == "", "Action feedback should clear")
+
+func test_items() -> void:
+	var game = await load_game()
+	var inventory_before = game.item_inventory.size()
+	game.grant_random_item()
+	assert_eq(game.item_inventory.size(), inventory_before + 1, "Granting an item should add to inventory")
+	assert_true("Items: %d" % game.item_inventory.size() in game.item_label.text, "Item UI should show inventory count")
+
+	game.item_inventory.clear()
+	game.item_inventory.append("training_sword")
+	game.update_item_ui()
+	var player_unit = find_deployed_player_unit()
+	assert_true(player_unit != null, "No deployed player unit available for item test")
+	var roster_id = player_unit.get_meta("roster_id")
+	var roster_entry = find_roster_entry(game, roster_id)
+	assert_true(roster_entry != null, "Roster entry should exist for item equip")
+	var damage_before = player_unit.damage
+
+	game._on_item_pressed(0)
+	assert_eq(game.selected_item_index, 0, "Clicking an item should select it")
+	game._on_unit_clicked(player_unit)
+	assert_eq(game.item_inventory.size(), 0, "Equipping should remove item from inventory")
+	assert_true(roster_entry.has("item_ids"), "Roster entry should support item_ids")
+	assert_eq(roster_entry.get("item_ids", []).size(), 1, "Equipped roster entry should have one item")
+	assert_eq(roster_entry.get("item_ids", [])[0], "training_sword", "Roster should store equipped item id")
+	assert_float_eq(player_unit.damage, damage_before + 10.0, "Training Sword should add damage after stat refresh")
+
+	game.item_inventory.append("longbow")
+	game.update_item_ui()
+	game._on_item_pressed(0)
+	game._on_unit_clicked(player_unit)
+	assert_eq(game.item_inventory.size(), 1, "Unit with an item should not equip a second item")
+	assert_true("Unit already has item" in game.action_feedback_label.text, "Equipping a second item should show feedback")
+
+	game.selected_item_index = -1
+	game.selected_unit = player_unit
+	game._on_sell_unit_button_pressed()
+	assert_true("training_sword" in game.item_inventory, "Selling deployed unit should return equipped item to inventory")
+
+	game = await load_game()
+	player_unit = find_deployed_player_unit()
+	assert_true(player_unit != null, "No deployed player unit available for item persistence test")
+	roster_id = player_unit.get_meta("roster_id")
+	roster_entry = find_roster_entry(game, roster_id)
+	var unit_id = roster_entry.get("unit_id", "")
+	var base_hp = game.unit_database.get_unit_data(unit_id)["max_hp"]
+	var expected_hp = base_hp
+	var faction = game.unit_database.get_unit_data(unit_id).get("faction", "")
+	if faction == "Romans":
+		expected_hp *= 1.2
+	if game.get_active_role_bonuses().has(game.unit_database.get_unit_data(unit_id).get("role", "")):
+		expected_hp *= game.get_active_role_bonuses()[game.unit_database.get_unit_data(unit_id).get("role", "")].get("max_hp_multiplier", 1.0)
+	expected_hp += 50.0
+
+	game.item_inventory.append("wooden_shield")
+	game.update_item_ui()
+	game._on_item_pressed(0)
+	game._on_unit_clicked(player_unit)
+	assert_float_eq(player_unit.max_hp, expected_hp, "Wooden Shield should add max HP after synergies")
+	game.restart_round()
+	await process_frame
+	var respawned_unit = find_player_unit_by_roster_id(roster_id)
+	assert_true(respawned_unit != null, "Equipped unit should respawn after next round")
+	roster_entry = find_roster_entry(game, roster_id)
+	assert_eq(roster_entry.get("item_ids", [])[0], "wooden_shield", "Equipped item should persist in roster after restart_round")
+	assert_float_eq(respawned_unit.max_hp, expected_hp, "Respawned unit should keep item stat bonus")
 
 func test_buy_xp() -> void:
 	var game = await load_game()
