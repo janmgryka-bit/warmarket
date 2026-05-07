@@ -658,19 +658,19 @@ func populate_shop() -> void:
 			continue
 		
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(220, 65)
+		card.custom_minimum_size = Vector2(220, 85)
 		
 		if i in sold_shop_offer_indices:
 			card.text = "SOLD"
 			card.disabled = true
 		else:
 			var can_afford = player_gold >= data["base_price"]
-			var affordability_text = "(Affordable)" if can_afford else "(Too Expensive)"
-			card.text = "%s\n%s\n%d gold %s" % [
+			card.text = "%s\n%s / %s\nTier %d\nCost: %dg" % [
 				data["name"],
+				data["faction"],
 				data["role"],
-				data["base_price"],
-				affordability_text
+				data.get("tier", 1),
+				data["base_price"]
 			]
 			card.disabled = not can_afford
 			card.pressed.connect(_on_shop_card_pressed.bind(unit_id, i))
@@ -950,7 +950,7 @@ func update_bench_ui() -> void:
 	for i in range(bench_units.size()):
 		var entry = bench_units[i]
 		var button = Button.new()
-		button.custom_minimum_size = Vector2(220, 65)
+		button.custom_minimum_size = Vector2(220, 70)
 		button.text = get_bench_unit_display_name(entry)
 		button.pressed.connect(_on_bench_unit_pressed.bind(i))
 		bench_items.add_child(button)
@@ -960,7 +960,7 @@ func get_bench_unit_display_name(entry: Dictionary) -> String:
 	var data: Dictionary = unit_database.get_unit_data(unit_id)
 	var star_level = entry.get("star_level", 1)
 	var name = data.get("name", unit_id)
-	return "%s %s" % [name, "★".repeat(clamp(star_level, 1, 3))]
+	return "%s %s\nTier %d" % [name, "★".repeat(clamp(star_level, 1, 3)), data.get("tier", 1)]
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():
