@@ -28,6 +28,16 @@ script = ExtResource("1_elqb8")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=390280858]
 
+[node name="ActionFeedbackLabel" type="Label" parent="UI"]
+visible = false
+offset_left = 420.0
+offset_top = 35.0
+offset_right = 810.0
+offset_bottom = 70.0
+text = "Action feedback"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="HudContainer" type="VBoxContainer" parent="UI" unique_id=390280859]
 offset_left = 30.0
 offset_top = 30.0

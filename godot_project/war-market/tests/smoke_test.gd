@@ -26,6 +26,7 @@ func _init() -> void:
 	await run_test("Initial state", Callable(self, "test_initial_state"))
 	await run_test("Battle speed toggle", Callable(self, "test_battle_speed_toggle"))
 	await run_test("Event log", Callable(self, "test_event_log"))
+	await run_test("Action feedback", Callable(self, "test_action_feedback"))
 	await run_test("Buy XP", Callable(self, "test_buy_xp"))
 	await run_test("Shop tier rolls", Callable(self, "test_shop_tier_rolls"))
 	await run_test("Faction bonuses", Callable(self, "test_faction_bonuses"))
@@ -88,6 +89,8 @@ func test_initial_state() -> void:
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
 	assert_true(game.event_log_label != null, "EventLogLabel should exist")
 	assert_true("New run started" in game.event_log_label.text, "Initial EventLogLabel should show new run started")
+	assert_true(game.action_feedback_label != null, "ActionFeedbackLabel should exist")
+	assert_true(not game.action_feedback_label.visible, "ActionFeedbackLabel should start hidden")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -147,6 +150,14 @@ func test_event_log() -> void:
 	assert_true("Battle started" in game.event_log_label.text, "Important battle start should appear in event log")
 	game.end_round("PLAYER WINS")
 	assert_true("Round result: PLAYER WINS" in game.event_log_label.text, "Important round result should appear in event log")
+
+func test_action_feedback() -> void:
+	var game = await load_game()
+	game.show_action_feedback("Test message")
+	assert_true(game.action_feedback_label.visible, "Action feedback should show when requested")
+	assert_true("Test message" in game.action_feedback_label.text, "Action feedback should show the requested message")
+	game.clear_action_feedback()
+	assert_true(not game.action_feedback_label.visible or game.action_feedback_label.text == "", "Action feedback should clear")
 
 func test_buy_xp() -> void:
 	var game = await load_game()

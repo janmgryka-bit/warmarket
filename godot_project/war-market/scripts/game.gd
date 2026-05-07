@@ -10,6 +10,7 @@ extends Node3D
 @onready var unit_details_panel: Panel = $UI/UnitDetailsPanel
 @onready var unit_details_label: Label = $UI/UnitDetailsPanel/UnitDetailsLabel
 @onready var event_log_label: Label = $UI/EventLogPanel/EventLogLabel
+@onready var action_feedback_label: Label = $UI/ActionFeedbackLabel
 @onready var shop_items: HBoxContainer = $UI/BottomContainer/ShopPanel/ShopItems
 @onready var gold_label: Label = $UI/HudContainer/GoldLabel
 @onready var player_level_label: Label = $UI/HudContainer/PlayerLevelLabel
@@ -43,6 +44,7 @@ var current_battle_seed: int = 0
 var current_battle_payload: Dictionary = {}
 var battle_history: Array[Dictionary] = []
 var max_battle_history_entries: int = 20
+var action_feedback_timer: Timer = null
 
 # Selection Helpers
 func clear_shop_selection() -> void:
@@ -67,6 +69,38 @@ func clear_all_selection() -> void:
 	clear_bench_selection()
 	if board != null and board.has_method("clear_tile_highlights"):
 		board.clear_tile_highlights()
+
+func show_action_feedback(message: String) -> void:
+	if action_feedback_label == null:
+		return
+	action_feedback_label.text = message
+	action_feedback_label.visible = true
+	if action_feedback_timer != null:
+		action_feedback_timer.start()
+
+func clear_action_feedback() -> void:
+	if action_feedback_timer != null:
+		action_feedback_timer.stop()
+	if action_feedback_label == null:
+		return
+	action_feedback_label.text = ""
+	action_feedback_label.visible = false
+
+func setup_action_feedback_timer() -> void:
+	action_feedback_timer = Timer.new()
+	action_feedback_timer.one_shot = true
+	action_feedback_timer.wait_time = 1.5
+	action_feedback_timer.timeout.connect(clear_action_feedback)
+	add_child(action_feedback_timer)
+
+func get_blocked_action_feedback() -> String:
+	if battle_started:
+		return "Battle in progress"
+	if game_over or victory:
+		return "Run ended"
+	if round_ended:
+		return "Round ended"
+	return "Not available"
 
 # Economy
 var starting_gold: int = 10
@@ -171,11 +205,13 @@ func _ready() -> void:
 		print("RestartRoundButton found")
 	
 	board.tile_clicked.connect(_on_board_tile_clicked)
+	setup_action_feedback_timer()
 	
 	round_result_label.text = ""
 	restart_button.visible = false
 	apply_battle_speed()
 	update_battle_speed_ui()
+	clear_action_feedback()
 	add_event_log("New run started")
 
 	update_gold_label()
@@ -623,10 +659,12 @@ func update_unit_details_panel() -> void:
 # Unit Selection and Movement
 func _on_unit_clicked(unit: CharacterBody3D) -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot select unit outside preparation phase")
 		return
 	
 	if unit.team_id != 0:
+		show_action_feedback("Cannot select enemy")
 		print("Cannot select enemy unit")
 		return
 	
@@ -692,14 +730,17 @@ func get_valid_player_empty_tiles() -> Array[Vector2i]:
 # Board Interaction
 func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot interact with board outside preparation phase")
 		return
 	
 	if grid_pos.y < 4:
+		show_action_feedback("Deploy on your side")
 		print("Enemy half - cannot place there")
 		return
 	
 	if is_tile_occupied(grid_pos):
+		show_action_feedback("Tile occupied")
 		print("Tile occupied: ", grid_pos)
 		return
 
@@ -708,6 +749,7 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 		return
 
 	if selected_unit == null or not is_instance_valid(selected_unit):
+		show_action_feedback("Select a unit")
 		print("No selected unit")
 		return
 
@@ -717,22 +759,27 @@ func _on_board_tile_clicked(grid_pos: Vector2i) -> void:
 
 func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot deploy bench unit outside preparation phase")
 		return false
 
 	if selected_bench_index < 0 or selected_bench_index >= bench_units.size():
+		show_action_feedback("Select a bench unit")
 		print("No bench unit selected")
 		return false
 
 	if grid_pos.y < 4:
+		show_action_feedback("Deploy on your side")
 		print("Cannot deploy to enemy half")
 		return false
 
 	if is_tile_occupied(grid_pos):
+		show_action_feedback("Tile occupied")
 		print("Cannot deploy to occupied tile: ", grid_pos)
 		return false
 
 	if player_roster.size() >= max_player_units:
+		show_action_feedback("Unit cap reached")
 		print("Unit cap reached")
 		return false
 
@@ -775,6 +822,7 @@ func get_first_player_unit() -> CharacterBody3D:
 func _on_start_battle_button_pressed() -> void:
 	print("BUTTON CLICKED")
 	if game_over or victory:
+		show_action_feedback("Run ended")
 		print("Cannot start battle after run has ended")
 		return
 	start_battle()
@@ -799,6 +847,7 @@ func create_battle_payload() -> Dictionary:
 
 func start_battle() -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		return
 	
 	current_battle_id += 1
@@ -990,6 +1039,7 @@ func calculate_streak_bonus() -> int:
 
 func restart_round() -> void:
 	if game_over or victory:
+		show_action_feedback("Run ended")
 		print("Cannot restart round after run has ended")
 		return
 	clear_units()
@@ -1131,6 +1181,7 @@ func reset_game() -> void:
 	
 	# Clear selection state
 	clear_all_selection()
+	clear_action_feedback()
 	
 	# Reset UI
 	round_result_label.text = ""
@@ -1191,14 +1242,17 @@ func clear_shop() -> void:
 
 func _on_buy_xp_button_pressed() -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot buy XP outside preparation phase")
 		return
 
 	if player_level >= max_player_level:
+		show_action_feedback("Max level")
 		print("Player is already at max level")
 		return
 
 	if player_gold < xp_purchase_cost:
+		show_action_feedback("Not enough gold")
 		print("Cannot afford XP. Need ", xp_purchase_cost, " gold, have ", player_gold)
 		return
 
@@ -1225,6 +1279,7 @@ func _on_buy_xp_button_pressed() -> void:
 
 func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot buy outside preparation phase")
 		return
 	
@@ -1235,13 +1290,16 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	
 	var cost = data["base_price"]
 	if offer_index in sold_shop_offer_indices:
+		show_action_feedback("Already sold")
 		print("Shop slot ", offer_index, " is already sold")
 		return
 	if player_gold < cost:
+		show_action_feedback("Not enough gold")
 		print("Cannot afford ", data["name"], ". Need ", cost, " gold, have ", player_gold)
 		return
 
 	if bench_units.size() >= max_bench_units:
+		show_action_feedback("Bench full")
 		print("Bench is full")
 		return
 	
@@ -1350,10 +1408,12 @@ func find_player_unit_by_roster_id(roster_id: int) -> CharacterBody3D:
 
 func _on_reroll_button_pressed() -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot reroll outside preparation phase")
 		return
 	
 	if player_gold < reroll_cost:
+		show_action_feedback("Not enough gold")
 		print("Cannot afford reroll. Need ", reroll_cost, " gold, have ", player_gold)
 		return
 	
@@ -1366,11 +1426,13 @@ func _on_reroll_button_pressed() -> void:
 
 func _on_use_self_as_opponent_button_pressed() -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot mirror army outside preparation phase")
 		return
 
 	var snapshot = create_player_army_snapshot()
 	if snapshot.is_empty():
+		show_action_feedback("No army to mirror")
 		print("No player army to mirror")
 		return
 
@@ -1382,6 +1444,7 @@ func _on_use_self_as_opponent_button_pressed() -> void:
 
 func _on_sell_unit_button_pressed() -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot sell outside preparation phase")
 		return
 	
@@ -1406,10 +1469,12 @@ func _on_sell_unit_button_pressed() -> void:
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
+		show_action_feedback("Select a unit")
 		print("No unit selected to sell")
 		return
 	
 	if selected_unit.team_id != 0:
+		show_action_feedback("Cannot sell enemy")
 		print("Cannot sell enemy unit")
 		return
 	
@@ -1516,10 +1581,12 @@ func get_bench_unit_display_name(entry: Dictionary) -> String:
 
 func _on_bench_unit_pressed(index: int) -> void:
 	if not is_preparation_phase():
+		show_action_feedback(get_blocked_action_feedback())
 		print("Cannot select bench unit outside preparation phase")
 		return
 
 	if index < 0 or index >= bench_units.size():
+		show_action_feedback("Bench slot empty")
 		print("Bench index out of range: ", index)
 		return
 
