@@ -166,7 +166,7 @@ func _ready() -> void:
 	restart_button.visible = false
 	apply_battle_speed()
 	update_battle_speed_ui()
-	add_event_log("Game ready")
+	add_event_log("New run started")
 
 	update_gold_label()
 	update_player_health_label()
@@ -730,7 +730,7 @@ func try_deploy_bench_unit(grid_pos: Vector2i) -> bool:
 	update_bench_ui()
 	update_unit_cap_label()
 	clear_all_selection()
-	add_event_log("Deployed %s %d-star" % [data.get("name", unit_id), star_level])
+	print("Deployed ", data.get("name", unit_id), " from bench at ", grid_pos, " star: ", star_level)
 	return true
 
 func get_first_player_unit() -> CharacterBody3D:
@@ -782,8 +782,8 @@ func start_battle() -> void:
 	
 	clear_all_selection()
 	
-	add_event_log("Battle %d seed: %d" % [current_battle_id, current_battle_seed])
-	add_event_log("Battle payload created")
+	print("Battle ", current_battle_id, " seed: ", current_battle_seed)
+	print("Battle payload created")
 	add_event_log("Battle started")
 	
 	var units := get_tree().get_nodes_in_group("units")
@@ -876,7 +876,7 @@ func get_battle_history_summary_text() -> String:
 func end_round(result_text: String) -> void:
 	last_battle_summary = create_battle_summary(result_text)
 	record_battle_summary(last_battle_summary)
-	add_event_log("Battle summary recorded")
+	print("Battle summary recorded")
 
 	if result_text == "PLAYER WINS" and round_number >= max_rounds:
 		trigger_victory()
@@ -1165,12 +1165,12 @@ func _on_shop_card_pressed(unit_id: String, offer_index: int) -> void:
 	player_gold -= cost
 	bench_units.append({"unit_id": unit_id, "star_level": 1})
 	sold_shop_offer_indices.append(offer_index)
-	add_event_log("Bought %s to bench for %dg" % [data["name"], cost])
 	update_gold_label()
 	try_merge_bench_units()
 	update_bench_ui()
 	populate_shop()
 	clear_all_selection()
+	print("Bought ", data["name"], " to bench for ", cost, " gold")
 
 func try_merge_bench_units() -> void:
 	var merged_any = false
@@ -1288,14 +1288,14 @@ func _on_use_self_as_opponent_button_pressed() -> void:
 
 	var snapshot = create_player_army_snapshot()
 	if snapshot.is_empty():
-		add_event_log("No player army to mirror")
+		print("No player army to mirror")
 		return
 
 	opponent_army_snapshot = snapshot
 	use_snapshot_opponent = true
 	clear_opponent_units()
 	spawn_opponent_army(round_number)
-	add_event_log("Using mirrored army as opponent")
+	print("Using mirrored army as opponent")
 
 func _on_sell_unit_button_pressed() -> void:
 	if not is_preparation_phase():
@@ -1319,7 +1319,7 @@ func _on_sell_unit_button_pressed() -> void:
 		update_bench_ui()
 		populate_shop()
 		clear_all_selection()
-		add_event_log("Sold bench %s %d-star for %dg" % [bench_data["name"], bench_star, bench_refund])
+		print("Sold bench ", bench_data["name"], " star: ", bench_star, " for ", bench_refund, " gold")
 		return
 	
 	if selected_unit == null or not is_instance_valid(selected_unit):
@@ -1367,7 +1367,7 @@ func _on_sell_unit_button_pressed() -> void:
 	update_gold_label()
 	update_unit_cap_label()
 	populate_shop()
-	add_event_log("Sold %s %d-star for %dg" % [deployed_data["name"], deployed_star, deployed_refund])
+	print("Sold ", deployed_data["name"], " star: ", deployed_star, " for ", deployed_refund, " gold")
 
 func get_star_refund_multiplier(star_level: int) -> int:
 	match star_level:

@@ -81,7 +81,7 @@ func test_initial_state() -> void:
 	assert_true(game.synergy_label != null, "SynergyLabel should exist")
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
 	assert_true(game.event_log_label != null, "EventLogLabel should exist")
-	assert_true("Game ready" in game.event_log_label.text, "Initial EventLogLabel should show game ready")
+	assert_true("New run started" in game.event_log_label.text, "Initial EventLogLabel should show new run started")
 
 func test_battle_speed_toggle() -> void:
 	var game = await load_game()
@@ -129,6 +129,18 @@ func test_event_log() -> void:
 	assert_true(not ("First event" in game.event_log), "Event log should remove old entries")
 	var latest_event = "Recent event %d" % (game.max_event_log_entries + 1)
 	assert_true(latest_event in game.event_log_label.text, "Event log label should show recent events")
+
+	game.event_log.clear()
+	game.update_event_log_ui()
+	game.player_gold = 100
+	game.sold_shop_offer_indices.clear()
+	game._on_shop_card_pressed("roman_spearman", 0)
+	assert_true(not event_log_contains_prefix(game, "Bought"), "Routine buys should not be required in event log")
+
+	game.start_battle()
+	assert_true("Battle started" in game.event_log_label.text, "Important battle start should appear in event log")
+	game.end_round("PLAYER WINS")
+	assert_true("Round result: PLAYER WINS" in game.event_log_label.text, "Important round result should appear in event log")
 
 func test_buy_xp() -> void:
 	var game = await load_game()
@@ -715,6 +727,12 @@ func count_team_units(team_id: int) -> int:
 		if unit.team_id == team_id:
 			count += 1
 	return count
+
+func event_log_contains_prefix(game, prefix: String) -> bool:
+	for entry in game.event_log:
+		if entry.begins_with(prefix):
+			return true
+	return false
 
 func find_deployed_player_unit():
 	for unit in get_nodes_in_group("units"):
