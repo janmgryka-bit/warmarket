@@ -1,6 +1,15 @@
 extends CharacterBody3D
 
 signal unit_clicked(unit)
+signal unit_died(unit)
+
+const MORALE_DEFAULT := 50.0
+const MORALE_MIN := 0.0
+const MORALE_MAX := 100.0
+const MORALE_LOW_THRESHOLD := 25.0
+const MORALE_HIGH_THRESHOLD := 75.0
+const MORALE_LOW_DAMAGE_MULTIPLIER := 0.9
+const MORALE_HIGH_DAMAGE_MULTIPLIER := 1.1
 
 @export var unit_name: String = "Unit"
 @export var team_id: int = 0
@@ -23,6 +32,7 @@ var battle_active: bool = false
 var is_selected: bool = false
 var star_level: int = 1
 var is_dead: bool = false
+var morale: float = MORALE_DEFAULT
 
 @onready var body_mesh: MeshInstance3D = $MeshInstance3D
 @onready var health_bar: Node3D = $HealthBar
@@ -115,7 +125,7 @@ func attack(enemy: CharacterBody3D) -> void:
 	print(unit_name, " attacks ", enemy.unit_name)
 	face_position(enemy.global_position)
 	play_attack_visual(enemy)
-	enemy.take_damage(damage)
+	enemy.take_damage(damage * get_morale_damage_multiplier())
 
 func face_position(target_position: Vector3) -> void:
 	var flat_target := Vector3(target_position.x, global_position.y, target_position.z)
@@ -242,6 +252,7 @@ func die() -> void:
 	target = null
 	input_ray_pickable = false
 	print(unit_name, " died")
+	unit_died.emit(self)
 	play_death_visual()
 
 func play_death_visual() -> void:
@@ -277,6 +288,7 @@ func play_death_visual() -> void:
 func start_battle() -> void:
 	battle_active = true
 	set_selected(false)
+	set_morale(MORALE_DEFAULT)
 	print(unit_name, " starts battle")
 
 func stop_battle() -> void:
@@ -286,6 +298,29 @@ func stop_battle() -> void:
 func set_selected(value: bool) -> void:
 	is_selected = value
 	update_selection_visual()
+
+func get_morale() -> float:
+	return morale
+
+func set_morale(value: float) -> void:
+	morale = clamp(value, MORALE_MIN, MORALE_MAX)
+
+func adjust_morale(amount: float) -> void:
+	set_morale(morale + amount)
+
+func get_morale_damage_multiplier() -> float:
+	if morale <= MORALE_LOW_THRESHOLD:
+		return MORALE_LOW_DAMAGE_MULTIPLIER
+	if morale >= MORALE_HIGH_THRESHOLD:
+		return MORALE_HIGH_DAMAGE_MULTIPLIER
+	return 1.0
+
+func get_morale_state_text() -> String:
+	if morale <= MORALE_LOW_THRESHOLD:
+		return "Shaken"
+	if morale >= MORALE_HIGH_THRESHOLD:
+		return "Inspired"
+	return "Stable"
 
 func apply_team_color() -> void:
 	var material := StandardMaterial3D.new()

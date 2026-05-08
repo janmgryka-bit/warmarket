@@ -12,6 +12,9 @@ var TESTS: Array[Dictionary] = [
 	{"name": "Buy XP", "method": "test_buy_xp"},
 	{"name": "Shop tier rolls", "method": "test_shop_tier_rolls"},
 	{"name": "Unit combat identity stats", "method": "test_unit_combat_identity_stats"},
+	{"name": "Morale default and clamp", "method": "test_morale_default_and_clamp"},
+	{"name": "Morale death events", "method": "test_morale_death_events"},
+	{"name": "Morale combat modifier", "method": "test_morale_combat_modifier"},
 	{"name": "Faction bonuses", "method": "test_faction_bonuses"},
 	{"name": "Role bonuses", "method": "test_role_bonuses"},
 	{"name": "Unit details panel", "method": "test_unit_details_panel"},
@@ -372,6 +375,63 @@ func test_unit_combat_identity_stats() -> void:
 	var hp_before: float = spawned_spearman.current_hp
 	spawned_spearman.take_damage(10.0)
 	assert_float_eq(spawned_spearman.current_hp, hp_before - 9.0, "Spearman damage reduction should apply in combat damage")
+
+func test_morale_default_and_clamp() -> void:
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1}
+	], [])
+
+	var unit = find_deployed_player_unit()
+	assert_true(unit != null, "Morale test needs a deployed unit")
+	assert_float_eq(unit.get_morale(), 50.0, "Unit morale should default to 50")
+
+	unit.set_morale(-25.0)
+	assert_float_eq(unit.get_morale(), 0.0, "Morale should clamp to 0")
+
+	unit.set_morale(125.0)
+	assert_float_eq(unit.get_morale(), 100.0, "Morale should clamp to 100")
+
+	unit.set_morale(12.0)
+	game.start_battle()
+	assert_float_eq(unit.get_morale(), 50.0, "Starting battle should reset morale to 50")
+
+func test_morale_death_events() -> void:
+	var game = await setup_roster_for_test([
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "roman_spearman", "grid_pos": Vector2i(3, 6), "star_level": 1}
+	], [
+		{"unit_id": "viking_axeman", "grid_pos": Vector2i(2, 5), "star_level": 1}
+	])
+
+	var survivor = find_player_unit_by_roster_id(1)
+	var allied_target = find_player_unit_by_roster_id(2)
+	var enemy = find_first_unit_for_team(1)
+	assert_true(survivor != null, "Morale ally death test needs a surviving ally")
+	assert_true(allied_target != null, "Morale ally death test needs an allied death target")
+	assert_true(enemy != null, "Morale enemy death test needs an enemy death target")
+
+	allied_target.take_damage(9999.0)
+	assert_float_eq(survivor.get_morale(), 40.0, "Nearby allied death should reduce survivor morale by 10")
+	assert_float_eq(enemy.get_morale(), 58.0, "Nearby enemy death should increase opposing survivor morale by 8")
+
+	survivor.set_morale(50.0)
+	enemy.set_morale(50.0)
+	enemy.take_damage(9999.0)
+	assert_float_eq(survivor.get_morale(), 58.0, "Nearby enemy death should increase survivor morale by 8")
+
+func test_morale_combat_modifier() -> void:
+	var game = await load_game()
+	var unit = find_deployed_player_unit()
+	assert_true(unit != null, "Morale modifier test needs a deployed unit")
+
+	unit.set_morale(50.0)
+	assert_float_eq(unit.get_morale_damage_multiplier(), 1.0, "Stable morale should not modify damage")
+
+	unit.set_morale(25.0)
+	assert_true(unit.get_morale_damage_multiplier() < 1.0, "Low morale should reduce damage output")
+
+	unit.set_morale(75.0)
+	assert_true(unit.get_morale_damage_multiplier() > 1.0, "High morale should increase damage output")
 
 func test_faction_bonuses() -> void:
 	var game = await setup_roster_for_test([
@@ -1123,6 +1183,12 @@ func count_team_units(team_id: int) -> int:
 		if unit.team_id == team_id:
 			count += 1
 	return count
+
+func find_first_unit_for_team(team_id: int):
+	for unit in get_nodes_in_group("units"):
+		if unit.team_id == team_id and unit.current_hp > 0:
+			return unit
+	return null
 
 func event_log_contains_prefix(game, prefix: String) -> bool:
 	for entry in game.event_log:

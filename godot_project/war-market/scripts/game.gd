@@ -65,6 +65,9 @@ var battle_history: Array[Dictionary] = []
 var max_battle_history_entries: int = 20
 var export_battle_summaries: bool = false
 var battle_summary_export_dir: String = "user://battle_summaries"
+var morale_nearby_radius: float = 4.0
+var ally_death_nearby_penalty: float = -10.0
+var enemy_death_nearby_bonus: float = 8.0
 var action_feedback_timer: Timer = null
 var arena_bench_root: Node3D = null
 var arena_bench_slot_nodes: Array[Area3D] = []
@@ -890,6 +893,8 @@ func spawn_unit_by_id(unit_id: String, team_id: int, grid_pos: Vector2i, star_le
 
 	units_container.add_child(unit)
 	unit.unit_clicked.connect(_on_unit_clicked)
+	if unit.has_signal("unit_died"):
+		unit.unit_died.connect(_on_unit_died)
 	place_unit_on_grid(unit, grid_pos)
 	unit.set_meta("star_level", star_level)
 	if unit.has_method("set_star_level"):
@@ -1121,6 +1126,8 @@ func update_unit_details_panel() -> void:
 		"Cooldown: %.2fs" % selected_unit.attack_cooldown,
 		"Market: %dg (%s)" % [market_price, market_trend]
 	]
+	if selected_unit.has_method("get_morale") and selected_unit.has_method("get_morale_state_text"):
+		lines.append("Morale: %d / %s" % [int(round(selected_unit.get_morale())), selected_unit.get_morale_state_text()])
 	if selected_unit.damage_taken_multiplier < 0.999:
 		lines.append("Damage Taken: %.0f%%" % (selected_unit.damage_taken_multiplier * 100.0))
 	if selected_unit.team_id == 0:
@@ -1354,6 +1361,31 @@ func start_battle() -> void:
 	var units := get_tree().get_nodes_in_group("units")
 	for unit in units:
 		unit.start_battle()
+
+func _on_unit_died(dead_unit: CharacterBody3D) -> void:
+	apply_morale_event_on_death(dead_unit)
+
+func apply_morale_event_on_death(dead_unit: CharacterBody3D) -> void:
+	if dead_unit == null or not is_instance_valid(dead_unit):
+		return
+
+	var units := get_tree().get_nodes_in_group("units")
+	for unit in units:
+		if unit == dead_unit:
+			continue
+		if not is_instance_valid(unit) or unit.is_queued_for_deletion():
+			continue
+		if unit.current_hp <= 0 or unit.is_dead:
+			continue
+		if not unit.has_method("adjust_morale"):
+			continue
+		if unit.global_position.distance_to(dead_unit.global_position) > morale_nearby_radius:
+			continue
+
+		if unit.team_id == dead_unit.team_id:
+			unit.adjust_morale(ally_death_nearby_penalty)
+		else:
+			unit.adjust_morale(enemy_death_nearby_bonus)
 
 func is_preparation_phase() -> bool:
 	return not battle_started and not round_ended and not game_over and not victory
