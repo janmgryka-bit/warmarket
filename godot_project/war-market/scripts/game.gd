@@ -570,6 +570,7 @@ var item_inventory: Array[String] = []
 var selected_item_index: int = -1
 var use_snapshot_opponent: bool = false
 var opponent_army_snapshot: Array[Dictionary] = []
+var neutral_reward_item_round: int = 4
 
 # Setup
 func _ready() -> void:
@@ -786,14 +787,40 @@ func get_unit_star_level(unit: CharacterBody3D) -> int:
 func mirror_grid_pos_for_opponent(grid_pos: Vector2i) -> Vector2i:
 	return battle_snapshot.mirror_grid_pos_for_opponent(grid_pos)
 
+func get_round_type(target_round: int) -> String:
+	if target_round == 1 or target_round % 4 == 0:
+		return "neutral"
+	return "pvp"
+
+func is_neutral_round(target_round: int) -> bool:
+	return get_round_type(target_round) == "neutral"
+
 func spawn_opponent_army(round_num: int) -> void:
 	# Opponent army = enemy team units for the current battle.
 	if use_snapshot_opponent and not opponent_army_snapshot.is_empty():
 		spawn_opponent_army_from_snapshot(opponent_army_snapshot)
 		return
 
-	# For now, the PvE wave generator is the fallback temporary source of that army.
-	spawn_enemy_wave(round_num)
+	if is_neutral_round(round_num):
+		spawn_enemy_wave(round_num)
+		return
+
+	spawn_opponent_army_from_snapshot(create_generated_ghost_army_snapshot(round_num))
+
+func create_generated_ghost_army_snapshot(round_num: int) -> Array[Dictionary]:
+	var snapshot := create_player_army_snapshot()
+	if not snapshot.is_empty():
+		return snapshot
+
+	var fallback_units := [
+		{"unit_id": "roman_legionary", "grid_pos": Vector2i(2, 6), "star_level": 1},
+		{"unit_id": "roman_archer", "grid_pos": Vector2i(4, 7), "star_level": 1}
+	]
+	var fallback_count = 1 if round_num < 5 else 2
+	var fallback_snapshot: Array[Dictionary] = []
+	for i in range(fallback_count):
+		fallback_snapshot.append(fallback_units[i].duplicate())
+	return fallback_snapshot
 
 func spawn_opponent_army_from_snapshot(snapshot: Array[Dictionary]) -> void:
 	for entry in snapshot:
@@ -1323,8 +1350,15 @@ func _on_start_battle_button_pressed() -> void:
 func generate_battle_seed() -> int:
 	return randi()
 
+func get_opponent_source_label() -> String:
+	if use_snapshot_opponent and not opponent_army_snapshot.is_empty():
+		return "pvp_snapshot"
+	if is_neutral_round(round_number):
+		return "neutral"
+	return "pvp_generated_ghost"
+
 func create_battle_payload() -> Dictionary:
-	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
+	var opponent_source = get_opponent_source_label()
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
 	return battle_snapshot.create_battle_payload({
 		"battle_id": current_battle_id,
@@ -1355,6 +1389,7 @@ func start_battle() -> void:
 	
 	print("Battle ", current_battle_id, " seed: ", current_battle_seed)
 	print("Battle payload created")
+	add_event_log("Neutral Round" if get_opponent_source_label() == "neutral" else "PvP Round")
 	add_event_log("Battle started")
 	play_audio_event("start_battle")
 	
@@ -1419,7 +1454,7 @@ func check_round_end() -> void:
 		end_round("DRAW")
 
 func create_battle_summary(result_text: String, player_damage_taken: int = 0) -> Dictionary:
-	var opponent_source = "snapshot" if use_snapshot_opponent else "pve_wave"
+	var opponent_source = get_opponent_source_label()
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
 	return battle_snapshot.create_battle_summary({
 		"battle_id": current_battle_id,
@@ -1453,6 +1488,23 @@ func get_surviving_opponent_unit_damage() -> int:
 
 func calculate_player_loss_damage() -> int:
 	return get_round_loss_damage(round_number) + get_surviving_opponent_unit_damage()
+
+func get_neutral_reward_gold(target_round: int) -> int:
+	if target_round >= 8:
+		return 4
+	if target_round >= 4:
+		return 3
+	return 2
+
+func grant_neutral_round_reward() -> void:
+	var reward_gold := get_neutral_reward_gold(round_number)
+	player_gold += reward_gold
+	update_gold_label()
+	add_event_log("Neutral reward: +%dg" % reward_gold)
+	if round_number >= neutral_reward_item_round:
+		var item_id = grant_random_item()
+		if item_id != "":
+			add_event_log("Neutral reward item: %s" % get_item_name(item_id))
 
 func record_battle_summary(summary: Dictionary) -> void:
 	battle_history.append(summary)
@@ -1500,6 +1552,8 @@ func end_round(result_text: String) -> void:
 	var player_damage_taken := 0
 	if result_text == "ENEMY WINS":
 		player_damage_taken = calculate_player_loss_damage()
+	if result_text == "PLAYER WINS" and get_opponent_source_label() == "neutral":
+		grant_neutral_round_reward()
 	
 	last_battle_summary = create_battle_summary(result_text, player_damage_taken)
 	record_battle_summary(last_battle_summary)
@@ -1583,7 +1637,6 @@ func restart_round() -> void:
 	player_gold += round_income + result_bonus + interest + streak_bonus
 	print("Round income: ", round_income, " + bonus: ", result_bonus, " + interest: ", interest, " + streak: ", streak_bonus)
 	add_event_log("Next round: +%dg income, +%dg bonus, +%dg interest, +%dg streak" % [round_income, result_bonus, interest, streak_bonus])
-	grant_random_item()
 	
 	last_round_result = ""
 	
@@ -2056,16 +2109,17 @@ func get_item_data(item_id: String) -> Dictionary:
 func get_item_name(item_id: String) -> String:
 	return item_database.get_item_name(item_id)
 
-func grant_random_item() -> void:
+func grant_random_item() -> String:
 	var item_ids = item_database.get_all_item_ids()
 	if item_ids.is_empty():
-		return
-
+		return ""
+	
 	var item_id = item_ids[randi_range(0, item_ids.size() - 1)]
 	item_inventory.append(item_id)
 	selected_item_index = -1
 	update_item_ui()
 	print("Granted item: ", get_item_name(item_id))
+	return item_id
 
 func update_item_ui() -> void:
 	item_label.text = "Items: %d" % item_inventory.size()

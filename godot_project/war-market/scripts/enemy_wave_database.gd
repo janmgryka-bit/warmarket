@@ -1,7 +1,7 @@
 extends Node
 
-# PvE wave generator definitions by round.
-# These temporary PvE waves currently provide the fallback opponent army.
+# Neutral creep wave definitions by round.
+# PvP rounds use ghost/snapshot opponents; these waves are only for economy rounds.
 const WAVES := {
 	1: [
 		{"unit_id": "viking_berserker", "grid_pos": Vector2i(5, 1)}

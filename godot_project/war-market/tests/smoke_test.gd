@@ -15,6 +15,10 @@ var TESTS: Array[Dictionary] = [
 	{"name": "Morale default and clamp", "method": "test_morale_default_and_clamp"},
 	{"name": "Morale death events", "method": "test_morale_death_events"},
 	{"name": "Morale combat modifier", "method": "test_morale_combat_modifier"},
+	{"name": "Round type rules", "method": "test_round_type_rules"},
+	{"name": "PvP round opponent path", "method": "test_pvp_round_opponent_path"},
+	{"name": "Neutral round opponent path", "method": "test_neutral_round_opponent_path"},
+	{"name": "Neutral round rewards", "method": "test_neutral_round_rewards"},
 	{"name": "Faction bonuses", "method": "test_faction_bonuses"},
 	{"name": "Role bonuses", "method": "test_role_bonuses"},
 	{"name": "Unit details panel", "method": "test_unit_details_panel"},
@@ -432,6 +436,51 @@ func test_morale_combat_modifier() -> void:
 
 	unit.set_morale(75.0)
 	assert_true(unit.get_morale_damage_multiplier() > 1.0, "High morale should increase damage output")
+
+func test_round_type_rules() -> void:
+	var game = await load_game()
+	assert_eq(game.get_round_type(1), "neutral", "Round 1 should be neutral")
+	assert_eq(game.get_round_type(4), "neutral", "Round 4 should be neutral")
+	assert_eq(game.get_round_type(8), "neutral", "Round 8 should be neutral")
+	assert_eq(game.get_round_type(2), "pvp", "Round 2 should be PvP")
+	assert_eq(game.get_round_type(3), "pvp", "Round 3 should be PvP")
+	assert_eq(game.get_round_type(5), "pvp", "Round 5 should be PvP")
+	assert_eq(game.get_round_type(6), "pvp", "Round 6 should be PvP")
+	assert_eq(game.get_round_type(7), "pvp", "Round 7 should be PvP")
+
+func test_pvp_round_opponent_path() -> void:
+	var game = await load_game()
+	await clear_enemy_units()
+	game.round_number = 2
+	game.spawn_opponent_army(game.round_number)
+	await process_frame
+
+	var player_snapshot = game.create_player_army_snapshot()
+	assert_true(player_snapshot.size() > 0, "PvP opponent test needs a player army snapshot")
+	assert_eq(count_team_units(1), player_snapshot.size(), "PvP round should generate one ghost opponent per player snapshot unit")
+
+func test_neutral_round_opponent_path() -> void:
+	var game = await load_game()
+	await clear_enemy_units()
+	game.round_number = 4
+	game.spawn_opponent_army(game.round_number)
+	await process_frame
+
+	assert_true(count_team_units(1) > 0, "Neutral round should spawn neutral enemies")
+	assert_eq(game.get_opponent_source_label(), "neutral", "Neutral round should label opponent source as neutral")
+
+func test_neutral_round_rewards() -> void:
+	var game = await load_game()
+	game.round_number = 4
+	var gold_before = game.player_gold
+	var items_before = game.item_inventory.size()
+
+	game.end_round("PLAYER WINS")
+
+	assert_eq(game.player_gold, gold_before + game.get_neutral_reward_gold(4), "Neutral win should grant neutral reward gold immediately")
+	assert_eq(game.item_inventory.size(), items_before + 1, "Round 4 neutral win should grant an item")
+	assert_true(event_log_contains_prefix(game, "Neutral reward: +"), "Neutral gold reward should be logged")
+	assert_true(event_log_contains_prefix(game, "Neutral reward item:"), "Neutral item reward should be logged")
 
 func test_faction_bonuses() -> void:
 	var game = await setup_roster_for_test([
