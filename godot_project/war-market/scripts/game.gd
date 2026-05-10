@@ -1358,6 +1358,29 @@ func get_opponent_source_label() -> String:
 		return "neutral"
 	return "pvp_generated_ghost"
 
+func get_round_type_display_name() -> String:
+	if get_opponent_source_label() == "neutral":
+		return "Neutral Round"
+	return "PvP Round"
+
+func get_opponent_source_display_name() -> String:
+	match get_opponent_source_label():
+		"pvp_snapshot":
+			return "Snapshot opponent"
+		"pvp_generated_ghost":
+			return "Generated ghost opponent"
+		"neutral":
+			return "Neutral creeps/minions"
+		_:
+			return "Unknown opponent"
+
+func get_round_flow_status_text() -> String:
+	return "Round %d: %s - %s" % [
+		round_number,
+		get_round_type_display_name(),
+		get_opponent_source_display_name()
+	]
+
 func create_battle_payload() -> Dictionary:
 	var opponent_source = get_opponent_source_label()
 	var opponent_snapshot = opponent_army_snapshot if use_snapshot_opponent else create_spawned_opponent_army_snapshot()
@@ -1390,7 +1413,7 @@ func start_battle() -> void:
 	
 	print("Battle ", current_battle_id, " seed: ", current_battle_seed)
 	print("Battle payload created")
-	add_event_log("Neutral Round" if get_opponent_source_label() == "neutral" else "PvP Round")
+	add_event_log(get_round_flow_status_text())
 	add_event_log("Battle started")
 	play_audio_event("start_battle")
 	
@@ -1678,7 +1701,12 @@ func update_player_health_label() -> void:
 	player_health_label.text = "HP: %d" % player_health
 
 func update_round_label() -> void:
-	round_label.text = "Round: %d / %d" % [round_number, max_rounds]
+	round_label.text = "Round: %d / %d\n%s - %s" % [
+		round_number,
+		max_rounds,
+		get_round_type_display_name(),
+		get_opponent_source_display_name()
+	]
 
 func get_xp_required_for_next_level() -> int:
 	if player_level >= max_player_level:
@@ -2220,6 +2248,7 @@ func _on_use_self_as_opponent_button_pressed() -> void:
 	use_snapshot_opponent = true
 	clear_opponent_units()
 	spawn_opponent_army(round_number)
+	update_round_label()
 	print("Using mirrored army as opponent")
 
 func _on_sell_unit_button_pressed() -> void:

@@ -113,6 +113,8 @@ func test_initial_state() -> void:
 	assert_true("Romans" in game.synergy_label.text, "Initial SynergyLabel should show active Roman synergy")
 	assert_true(game.event_log_label != null, "EventLogLabel should exist")
 	assert_true("New run started" in game.event_log_label.text, "Initial EventLogLabel should show new run started")
+	assert_true("Neutral Round" in game.round_label.text, "Initial RoundLabel should show neutral round type")
+	assert_true("Neutral creeps/minions" in game.round_label.text, "Initial RoundLabel should show neutral opponent source")
 	assert_true(game.action_feedback_label != null, "ActionFeedbackLabel should exist")
 	assert_true(not game.action_feedback_label.visible, "ActionFeedbackLabel should start hidden")
 	assert_true(game.item_label != null, "ItemLabel should exist")
@@ -214,6 +216,7 @@ func test_event_log() -> void:
 	assert_true(not event_log_contains_prefix(game, "Bought"), "Routine buys should not be required in event log")
 
 	game.start_battle()
+	assert_true(event_log_contains_prefix(game, "Round 1: Neutral Round - Neutral creeps/minions"), "Battle start should log neutral round and source")
 	assert_true("Battle started" in game.event_log_label.text, "Important battle start should appear in event log")
 	game.end_round("PLAYER WINS")
 	assert_true("Round result: PLAYER WINS" in game.event_log_label.text, "Important round result should appear in event log")
@@ -457,21 +460,27 @@ func test_pvp_round_opponent_path() -> void:
 	await clear_enemy_units()
 	game.round_number = 2
 	game.spawn_opponent_army(game.round_number)
+	game.update_round_label()
 	await process_frame
 
 	var player_snapshot = game.create_player_army_snapshot()
 	assert_true(player_snapshot.size() > 0, "PvP opponent test needs a player army snapshot")
 	assert_eq(count_team_units(1), player_snapshot.size(), "PvP round should generate one ghost opponent per player snapshot unit")
+	assert_true("PvP Round" in game.round_label.text, "PvP round should show PvP round type")
+	assert_true("Generated ghost opponent" in game.round_label.text, "Generated PvP round should show generated ghost source")
 
 func test_neutral_round_opponent_path() -> void:
 	var game = await load_game()
 	await clear_enemy_units()
 	game.round_number = 4
 	game.spawn_opponent_army(game.round_number)
+	game.update_round_label()
 	await process_frame
 
 	assert_true(count_team_units(1) > 0, "Neutral round should spawn neutral enemies")
 	assert_eq(game.get_opponent_source_label(), "neutral", "Neutral round should label opponent source as neutral")
+	assert_true("Neutral Round" in game.round_label.text, "Neutral round should show neutral round type")
+	assert_true("Neutral creeps/minions" in game.round_label.text, "Neutral round should show neutral source")
 
 func test_neutral_round_rewards() -> void:
 	var game = await load_game()
@@ -1082,6 +1091,7 @@ func test_mirror_army_button() -> void:
 	assert_true(game.use_snapshot_opponent, "Mirror Army should enable snapshot opponent mode")
 	assert_true(not game.opponent_army_snapshot.is_empty(), "Mirror Army should store an opponent snapshot")
 	assert_eq(count_team_units(1), game.opponent_army_snapshot.size(), "Mirror Army should spawn snapshot opponent units")
+	assert_true("Snapshot opponent" in game.round_label.text, "Mirror Army should show snapshot opponent source")
 
 	game.reset_game()
 	assert_true(not game.use_snapshot_opponent, "New run should disable snapshot opponent mode")
