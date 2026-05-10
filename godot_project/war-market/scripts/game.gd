@@ -43,6 +43,7 @@ var enemy_wave_database = preload("res://scripts/enemy_wave_database.gd")
 var economy_rules = preload("res://scripts/economy_rules.gd")
 var synergy_rules = preload("res://scripts/synergy_rules.gd")
 var battle_snapshot = preload("res://scripts/battle_snapshot.gd")
+var round_flow_rules = preload("res://scripts/round_flow_rules.gd")
 
 # State
 var battle_started: bool = false
@@ -570,7 +571,9 @@ var item_inventory: Array[String] = []
 var selected_item_index: int = -1
 var use_snapshot_opponent: bool = false
 var opponent_army_snapshot: Array[Dictionary] = []
-var neutral_reward_item_round: int = 4
+var neutral_reward_item_round: int = 8
+var neutral_reward_granted_battle_id: int = -1
+var neutral_reward_granted_round_number: int = -1
 
 # Setup
 func _ready() -> void:
@@ -788,12 +791,10 @@ func mirror_grid_pos_for_opponent(grid_pos: Vector2i) -> Vector2i:
 	return battle_snapshot.mirror_grid_pos_for_opponent(grid_pos)
 
 func get_round_type(target_round: int) -> String:
-	if target_round == 1 or target_round % 4 == 0:
-		return "neutral"
-	return "pvp"
+	return round_flow_rules.get_round_type(target_round)
 
 func is_neutral_round(target_round: int) -> bool:
-	return get_round_type(target_round) == "neutral"
+	return round_flow_rules.is_neutral_round(target_round)
 
 func spawn_opponent_army(round_num: int) -> void:
 	# Opponent army = enemy team units for the current battle.
@@ -836,8 +837,8 @@ func clear_opponent_units() -> void:
 			unit.queue_free()
 
 func spawn_enemy_wave(round_num: int) -> void:
-	# Temporary PvE wave generator used as the current opponent army source.
-	# Use exact definition if it exists, otherwise use the highest available.
+	# Neutral creep/minion rounds use exact wave definitions when available,
+	# otherwise they reuse the highest available neutral wave.
 	var wave_def = enemy_wave_database.get_wave_definition(round_num)
 	
 	# Spawn all enemy team units in the wave definition.
@@ -1497,10 +1498,16 @@ func get_neutral_reward_gold(target_round: int) -> int:
 	return 2
 
 func grant_neutral_round_reward() -> void:
+	if neutral_reward_granted_battle_id == current_battle_id and neutral_reward_granted_round_number == round_number:
+		return
+
+	neutral_reward_granted_battle_id = current_battle_id
+	neutral_reward_granted_round_number = round_number
+
 	var reward_gold := get_neutral_reward_gold(round_number)
 	player_gold += reward_gold
 	update_gold_label()
-	add_event_log("Neutral reward: +%dg" % reward_gold)
+	add_event_log("Neutral reward: +%d gold" % reward_gold)
 	if round_number >= neutral_reward_item_round:
 		var item_id = grant_random_item()
 		if item_id != "":
@@ -1741,6 +1748,8 @@ func reset_game() -> void:
 	current_battle_id = 0
 	current_battle_seed = 0
 	current_battle_payload.clear()
+	neutral_reward_granted_battle_id = -1
+	neutral_reward_granted_round_number = -1
 	market_deltas.clear()
 	market_demands.clear()
 	reset_battle_speed()

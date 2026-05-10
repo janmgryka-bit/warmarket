@@ -447,6 +447,10 @@ func test_round_type_rules() -> void:
 	assert_eq(game.get_round_type(5), "pvp", "Round 5 should be PvP")
 	assert_eq(game.get_round_type(6), "pvp", "Round 6 should be PvP")
 	assert_eq(game.get_round_type(7), "pvp", "Round 7 should be PvP")
+	assert_eq(game.get_round_type(9), "pvp", "Round 9 should be PvP")
+	assert_eq(game.get_round_type(10), "pvp", "Round 10 should be PvP")
+	assert_eq(game.get_round_type(11), "pvp", "Round 11 should be PvP")
+	assert_eq(game.get_round_type(12), "neutral", "Round 12 should use the post-round-8 neutral cadence")
 
 func test_pvp_round_opponent_path() -> void:
 	var game = await load_game()
@@ -478,9 +482,30 @@ func test_neutral_round_rewards() -> void:
 	game.end_round("PLAYER WINS")
 
 	assert_eq(game.player_gold, gold_before + game.get_neutral_reward_gold(4), "Neutral win should grant neutral reward gold immediately")
-	assert_eq(game.item_inventory.size(), items_before + 1, "Round 4 neutral win should grant an item")
+	assert_eq(game.item_inventory.size(), items_before, "Round 4 neutral win should not grant an item")
 	assert_true(event_log_contains_prefix(game, "Neutral reward: +"), "Neutral gold reward should be logged")
-	assert_true(event_log_contains_prefix(game, "Neutral reward item:"), "Neutral item reward should be logged")
+	assert_true(not event_log_contains_prefix(game, "Neutral reward item:"), "Round 4 neutral win should not log an item reward")
+
+	game.end_round("PLAYER WINS")
+	assert_eq(game.player_gold, gold_before + game.get_neutral_reward_gold(4), "Duplicate neutral result should not grant a second reward")
+	assert_eq(game.item_inventory.size(), items_before, "Duplicate neutral result should not grant an item")
+
+	var pvp_game = await load_game()
+	pvp_game.round_number = 5
+	var pvp_gold_before = pvp_game.player_gold
+	var pvp_items_before = pvp_game.item_inventory.size()
+	pvp_game.end_round("PLAYER WINS")
+	assert_eq(pvp_game.player_gold, pvp_gold_before, "PvP wins should not grant neutral reward gold")
+	assert_eq(pvp_game.item_inventory.size(), pvp_items_before, "PvP wins should not grant neutral reward items")
+
+	var later_neutral_game = await load_game()
+	later_neutral_game.round_number = 8
+	var later_gold_before = later_neutral_game.player_gold
+	var later_items_before = later_neutral_game.item_inventory.size()
+	later_neutral_game.end_round("PLAYER WINS")
+	assert_eq(later_neutral_game.player_gold, later_gold_before + later_neutral_game.get_neutral_reward_gold(8), "Round 8 neutral win should grant neutral reward gold")
+	assert_eq(later_neutral_game.item_inventory.size(), later_items_before + 1, "Round 8 neutral win should grant an item")
+	assert_true(event_log_contains_prefix(later_neutral_game, "Neutral reward item:"), "Round 8 neutral item reward should be logged")
 
 func test_faction_bonuses() -> void:
 	var game = await setup_roster_for_test([
